@@ -1,0 +1,41 @@
+services:
+  db:
+    image: postgis/postgis:16-3.4
+    container_name: garbage_postgis
+    environment:
+      POSTGRES_DB: garbage_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  web:
+    build: .
+    container_name: garbage_django
+    depends_on:
+      - db
+    ports:
+      - "8000:8000"
+    volumes:
+      - .:/app
+    environment:
+      DB_NAME: garbage_db
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+      DB_HOST: db
+      DB_PORT: "5432"
+
+  frontend:
+    image: node:20-alpine
+    container_name: garbage_frontend
+    working_dir: /app
+    volumes:
+      - ./frontend:/app
+    ports:
+      - "3000:3000"
+    command: sh -c "npm install && npm run dev -- --host 0.0.0.0 --port 3000"
+
+volumes:
+  pgdata:

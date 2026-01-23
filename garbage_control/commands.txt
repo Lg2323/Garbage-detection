@@ -1,0 +1,33 @@
+#Запуск всего
+docker compose up -d
+
+docker compose logs -f
+
+docker compose logs -f web
+docker compose restart web
+docker compose logs -f frontend
+docker compose restart frontend
+
+#Запуск с сборкой
+docker compose up -d --build
+
+
+#Полный сброс
+docker compose down -v
+
+docker exec -it garbage_django python manage.py check
+
+docker exec -it garbage_django python manage.py makemigrations
+docker exec -it garbage_django python manage.py migrate
+docker exec -it garbage_django python manage.py createsuperuser
+
+#Включить PostGIS
+docker exec -it garbage_postgis psql -U postgres -d garbage_db -c "CREATE EXTENSION IF NOT EXISTS postgis;"
+#Проверка PostGIS
+docker exec -it garbage_postgis psql -U postgres -d garbage_db -c "SELECT PostGIS_Full_Version();"
+
+#Перезапуск с чистой бд
+docker compose down -v
+docker compose up -d
+docker exec -it garbage_postgis psql -U postgres -d garbage_db -c "CREATE EXTENSION postgis;"
+docker exec -it garbage_django python manage.py migrate

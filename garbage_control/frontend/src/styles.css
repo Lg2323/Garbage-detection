@@ -1,0 +1,75 @@
+:root{
+  --bg:#f6f7fb;
+  --card:#ffffff;
+  --text:#111827;
+  --muted:#6b7280;
+  --border:#e5e7eb;
+  --primary:#2563eb;
+  --primary2:#1d4ed8;
+  --radius:14px;
+}
+
+body{
+  background: var(--bg);
+  color: var(--text);
+}
+
+.gc-shell{
+  max-width: 980px;
+  margin: 32px auto;
+  padding: 0 16px;
+}
+
+.gc-topbar{
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+}
+
+.gc-brand{
+  font-weight: 700;
+}
+
+.gc-nav a{
+  color: var(--text);
+  text-decoration:none;
+  padding: 8px 10px;
+  border-radius: 10px;
+}
+.gc-nav a:hover{
+  background:#f3f4f6;
+}
+
+.gc-card{
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 18px;
+}
+
+.gc-muted{ color: var(--muted); }
+
+.btn{
+  border-radius: 12px !important;
+}
+
+.form-control{
+  border-radius: 12px !important;
+  border: 1px solid var(--border) !important;
+}
+.form-control:focus{
+  border-color: rgba(37,99,235,.45) !important;
+  box-shadow: 0 0 0 .2rem rgba(37,99,235,.12) !important;
+}
+
+.gc-badge{
+  font-size: 12px;
+  border: 1px solid var(--border);
+  background:#f9fafb;
+  padding: 6px 10px;
+  border-radius: 999px;
+}

@@ -1,0 +1,96 @@
+:root{
+  --bg: #f5f7fb;
+  --card: #ffffff;
+  --text: #111827;
+  --muted: #6b7280;
+  --border: #e5e7eb;
+
+  --primary: #6d28d9;     /* фиолетовый акцент */
+  --primary-2:#7c3aed;
+
+  --radius: 16px;
+  --shadow: 0 10px 30px rgba(17,24,39,.08);
+}
+
+html, body { height: 100%; }
+body{
+  background: var(--bg);
+  color: var(--text);
+}
+
+.gc-container{
+  max-width: 1080px;
+}
+
+.gc-card{
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: 0 1px 0 rgba(17,24,39,.02);
+}
+
+.gc-card--soft{
+  box-shadow: var(--shadow);
+  border-color: rgba(229,231,235,.6);
+}
+
+.gc-muted{ color: var(--muted); }
+
+.gc-nav{
+  backdrop-filter: blur(10px);
+  background: rgba(255,255,255,.85);
+  border-bottom: 1px solid rgba(229,231,235,.9);
+}
+
+.gc-brand{
+  font-weight: 800;
+  letter-spacing: .2px;
+}
+
+.gc-pill{
+  border-radius: 999px;
+  padding: 6px 10px;
+  font-size: 12px;
+  border: 1px solid var(--border);
+  background: #f9fafb;
+  color: var(--muted);
+}
+
+.btn{
+  border-radius: 12px !important;
+  padding: 10px 14px !important;
+}
+
+.btn-primary{
+  background: var(--primary) !important;
+  border-color: var(--primary) !important;
+}
+.btn-primary:hover{
+  background: var(--primary-2) !important;
+  border-color: var(--primary-2) !important;
+}
+
+.form-control, .form-select{
+  border-radius: 12px !important;
+  border-color: var(--border) !important;
+  padding: 10px 12px !important;
+}
+.form-control:focus, .form-select:focus{
+  border-color: rgba(109,40,217,.4) !important;
+  box-shadow: 0 0 0 .2rem rgba(109,40,217,.12) !important;
+}
+
+/* статусные бейджи */
+.gc-status{
+  padding: 6px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  border: 1px solid var(--border);
+  background: #f9fafb;
+  color: var(--muted);
+}
+.gc-status--CREATED{ background:#eef2ff; border-color:#c7d2fe; color:#3730a3; }
+.gc-status--VERIFIED{ background:#ecfeff; border-color:#a5f3fc; color:#155e75; }
+.gc-status--IN_PROGRESS{ background:#fff7ed; border-color:#fed7aa; color:#9a3412; }
+.gc-status--ON_CHECK{ background:#fefce8; border-color:#fde68a; color:#854d0e; }
+.gc-status--COMPLETED{ background:#ecfdf5; border-color:#a7f3d0; color:#065f46; }

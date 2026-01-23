@@ -1,0 +1,7 @@
+Django
+djangorestframework
+psycopg[binary]
+Pillow
+django-cors-headers
+djangorestframework-simplejwt
+djangorestframework-simplejwt[crypto]
