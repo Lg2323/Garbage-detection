@@ -11,7 +11,7 @@ from rest_framework_simplejwt.exceptions import InvalidToken, TokenError
 from django.contrib.auth import get_user_model
 from rest_framework.permissions import IsAuthenticated
 from rest_framework import status
-from .serializers import WorkerSerializer
+from .serializers import UserSerializer
 from rest_framework.generics import ListAPIView
 
 
@@ -101,13 +101,9 @@ class LogoutView(APIView):
         return resp
 
 
-
-
-
-
 class WorkersListView(ListAPIView):
     permission_classes = [IsAuthenticated]
-    serializer_class = WorkerSerializer
+    serializer_class = UserSerializer
 
     def get_queryset(self):
         if self.request.user.role not in ("COORDINATOR", "ADMIN"):

@@ -1,5 +1,5 @@
 import { Link, Outlet, useNavigate } from "react-router-dom";
-import { logoutUser } from "../api/auth";
+import { logoutUser } from "../../api/auth";
 
 export default function AdminLayout() {
   const nav = useNavigate();

@@ -14,13 +14,14 @@ import RequestDetail from "./pages/coord/RequestDetail";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminUsers from "./pages/admin/AdminUsers";
 import AdminRequests from "./pages/admin/AdminRequests";
+import AdminLayout from "./pages/admin/AdminLayout";
 
 import { bootstrapAuth, logoutUser, getMe } from "./api/auth";
 
 export default function App() {
   const [authed, setAuthed] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [me, setMe] = useState(null); // {role,...}
+  const [me, setMe] = useState(null); 
 
   useEffect(() => {
     (async () => {
@@ -87,26 +88,14 @@ export default function App() {
           path="/admin"
           element={
             <RoleGuard authed={authed} role={me?.role} allow={["ADMIN"]}>
-              <AdminDashboard />
+              <AdminLayout />
             </RoleGuard>
           }
-        />
-        <Route
-          path="/admin/users"
-          element={
-            <RoleGuard authed={authed} role={me?.role} allow={["ADMIN"]}>
-              <AdminUsers />
-            </RoleGuard>
-          }
-        />
-        <Route
-          path="/admin/requests"
-          element={
-            <RoleGuard authed={authed} role={me?.role} allow={["ADMIN"]}>
-              <AdminRequests />
-            </RoleGuard>
-          }
-        />
+        >
+          <Route index element={<AdminDashboard />} />
+          <Route path="users" element={<AdminUsers />} />
+          <Route path="requests" element={<AdminRequests />} />
+        </Route>
 
         <Route path="/" element={<Navigate to={authed ? "/requests" : "/login"} />} />
         <Route path="*" element={<Navigate to="/" />} />

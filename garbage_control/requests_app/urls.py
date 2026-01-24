@@ -9,7 +9,3 @@ router.register(r"requests", RequestViewSet, basename="requests")
 urlpatterns = [
     path("", include(router.urls)),
 ]
-
-# urlpatterns = [
-#     path("requests/", RequestListCreateView.as_view(), name="requests"),
-# ]

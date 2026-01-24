@@ -4,7 +4,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework import status, generics, permissions
-from .serializers import VerifyRequestSerializer, VerificationResultSerializer
+from .serializers import VerifyRequestSerializer, VerificationResultSerializer, AdminSetStatusSerializer
 from ai_verification.services import verify_cleanup
 from .models import Request,VerificationResult
 from .serializers import (
@@ -13,7 +13,7 @@ from .serializers import (
     AssignWorkerSerializer,
     UploadAfterPhotoSerializer,
 )
-from .permissions import IsCitizen, IsCoordinator, IsWorker
+from .permissions import IsCitizen, IsCoordinatorOrAdmin, IsWorker, IsAdminRole
 
 User = get_user_model()
 
@@ -37,16 +37,16 @@ class RequestViewSet(ModelViewSet):
         user = self.request.user
         qs = Request.objects.all().order_by("-created_at")
 
-        # ---- фильтры (ДО разрезания по ролям или ПОСЛЕ — смотри ниже) ----
+        # фильтры
         status_q = self.request.query_params.get("status")
         q = self.request.query_params.get("q")
 
         if status_q:
             qs = qs.filter(status=status_q)
+
         if q:
             qs = qs.filter(title__icontains=q)
 
-        # ---- разрез по ролям ----
         if user.role in ("COORDINATOR", "ADMIN"):
             return qs
 
@@ -67,10 +67,13 @@ class RequestViewSet(ModelViewSet):
             return [IsAuthenticated(), IsCitizen()]
 
         if self.action in ('assign_worker',):
-            return [IsAuthenticated(), IsCoordinator()]
+            return [IsAuthenticated(), IsCoordinatorOrAdmin()]
 
         if self.action in ('take_in_work', 'upload_after_photo'):
             return [IsAuthenticated(), IsWorker()]
+
+        if self.action in ('set_status',):
+            return [IsAuthenticated(), IsAdminRole()]
 
         return super().get_permissions()
 
@@ -148,6 +151,19 @@ class RequestViewSet(ModelViewSet):
         # - если ок -> COMPLETED
         # - иначе -> вернуть координатору/в VERIFIED
         return Response({'status': 'Фото загружено, заявка отправлена на проверку'}, status=status.HTTP_200_OK)
+
+    @action(detail=True, methods=['post'])
+    def set_status(self, request, pk=None):
+        req = self.get_object()
+
+        ser = AdminSetStatusSerializer(data=request.data)
+        ser.is_valid(raise_exception=True)
+        new_status = ser.validated_data["status"]
+
+        req.status = new_status
+        req.save(update_fields=["status", "updated_at"])
+
+        return Response({"status": req.status}, status=status.HTTP_200_OK)
 
     @action(detail=True, methods=['post'])
     def verify(self, request, pk=None):

@@ -23,5 +23,9 @@ class IsCoordinator(HasRole):
     allowed_roles = {'COORDINATOR'}
 
 
+class IsCoordinatorOrAdmin(HasRole):
+    allowed_roles = {'COORDINATOR', 'ADMIN'}
+
+
 class IsAdminRole(HasRole):
     allowed_roles = {'ADMIN'}

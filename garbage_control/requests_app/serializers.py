@@ -32,16 +32,17 @@ class RequestListSerializer(serializers.ModelSerializer):
 class AssignWorkerSerializer(serializers.Serializer):
     worker_id = serializers.IntegerField(min_value=1)
 
-
 class UploadAfterPhotoSerializer(serializers.Serializer):
     after_photo = serializers.ImageField()
 
-
 class VerifyRequestSerializer(serializers.Serializer):
     force = serializers.BooleanField(required=False, default=False)
-
 
 class VerificationResultSerializer(serializers.ModelSerializer):
     class Meta:
         model = VerificationResult
         fields = ("is_clean", "score", "details", "created_at")
+
+
+class AdminSetStatusSerializer(serializers.Serializer):
+    status = serializers.ChoiceField(choices=Request.Status.choices)
