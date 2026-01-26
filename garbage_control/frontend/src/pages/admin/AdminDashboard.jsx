@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { adminStats } from "../../api/admin";
+import { statusLabel } from "../../ui/status";
 
 export default function AdminDashboard() {
   const [stats, setStats] = useState(null);
@@ -16,7 +17,7 @@ export default function AdminDashboard() {
   const roleMap = new Map((stats?.users_by_role || []).map((x) => [x.role, x.count]));
 
   return (
-    <div className="row g-3">
+    <div className="row g-3 gc-anim gc-anim--up">
       <div className="col-12">
         <div className="card p-3">
           <div className="d-flex align-items-center justify-content-between">
@@ -40,11 +41,11 @@ export default function AdminDashboard() {
           <div className="fw-semibold mb-2">Заявки</div>
           <div className="d-flex flex-wrap gap-2">
             <span className="badge text-bg-light">Всего: {stats?.requests_total ?? "—"}</span>
-            <span className="badge text-bg-secondary">CREATED: {statusMap.get("CREATED") ?? 0}</span>
-            <span className="badge text-bg-secondary">VERIFIED: {statusMap.get("VERIFIED") ?? 0}</span>
-            <span className="badge text-bg-secondary">IN_PROGRESS: {statusMap.get("IN_PROGRESS") ?? 0}</span>
-            <span className="badge text-bg-secondary">ON_CHECK: {statusMap.get("ON_CHECK") ?? 0}</span>
-            <span className="badge text-bg-secondary">COMPLETED: {statusMap.get("COMPLETED") ?? 0}</span>
+            <span className="badge text-bg-secondary">{statusLabel("CREATED")}: {statusMap.get("CREATED") ?? 0}</span>
+            <span className="badge text-bg-secondary">{statusLabel("VERIFIED")}: {statusMap.get("VERIFIED") ?? 0}</span>
+            <span className="badge text-bg-secondary">{statusLabel("IN_PROGRESS")}: {statusMap.get("IN_PROGRESS") ?? 0}</span>
+            <span className="badge text-bg-secondary">{statusLabel("ON_CHECK")}: {statusMap.get("ON_CHECK") ?? 0}</span>
+            <span className="badge text-bg-secondary">{statusLabel("COMPLETED")}: {statusMap.get("COMPLETED") ?? 0}</span>
           </div>
         </div>
       </div>

@@ -8,8 +8,9 @@ import Register from "./pages/Register";
 import RequestsList from "./pages/RequestsList";
 import CreateRequest from "./pages/CreateRequest";
 
-import CoordinatorRequests from "./pages/coord/RequestDetail";
-import RequestDetail from "./pages/coord/RequestDetail";
+import CoordinatorRequests from "./pages/coord/CoordRequests";
+import RequestDetail from "./pages/coord/CoordRequestDetail";
+import CoordMap from "./pages/coord/CoordMap";
 
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminUsers from "./pages/admin/AdminUsers";
@@ -71,6 +72,14 @@ export default function App() {
           element={
             <RoleGuard authed={authed} role={me?.role} allow={["COORDINATOR", "ADMIN"]}>
               <CoordinatorRequests />
+            </RoleGuard>
+          }
+        />
+        <Route
+          path="/coord/map"
+          element={
+            <RoleGuard authed={authed} role={me?.role} allow={["COORDINATOR", "ADMIN"]}>
+              <CoordMap />
             </RoleGuard>
           }
         />

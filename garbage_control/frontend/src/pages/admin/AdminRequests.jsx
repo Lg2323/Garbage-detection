@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { assignWorker, listRequests, listWorkers, setRequestStatus } from "../../api/admin";
+import { statusLabel } from "../../ui/status";
+import Notice from "../../components/Notice";
 
 const STATUSES = ["CREATED", "VERIFIED", "IN_PROGRESS", "ON_CHECK", "COMPLETED"];
 
@@ -83,7 +85,7 @@ export default function AdminRequests() {
   };
 
   return (
-    <div className="card p-3">
+    <div className="card p-3 gc-anim gc-anim--up">
       <div className="d-flex align-items-center justify-content-between mb-3">
         <div>
           <h4 className="mb-0">Заявки</h4>
@@ -109,7 +111,7 @@ export default function AdminRequests() {
           >
             <option value="">Все статусы</option>
             {STATUSES.map((s) => (
-              <option key={s} value={s}>{s}</option>
+              <option key={s} value={s}>{statusLabel(s)}</option>
             ))}
           </select>
         </div>
@@ -120,7 +122,7 @@ export default function AdminRequests() {
         </div>
       </div>
 
-      {msg && <div className="alert alert-danger">{msg}</div>}
+      <Notice type="danger" text={msg} onClose={() => setMsg("")} />
 
       <div className="table-responsive">
         <table className="table align-middle">
@@ -148,7 +150,7 @@ export default function AdminRequests() {
                       onChange={(e) => setDraft(r.id, { status: e.target.value })}
                     >
                       {STATUSES.map((s) => (
-                        <option key={s} value={s}>{s}</option>
+                        <option key={s} value={s}>{statusLabel(s)}</option>
                       ))}
                     </select>
                   </td>

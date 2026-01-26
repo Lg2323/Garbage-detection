@@ -9,9 +9,8 @@ export default function AppLayout({ authed, role, onLogout, children }) {
       <nav className="navbar navbar-expand-lg sticky-top gc-nav">
         <div className="container gc-container">
           <Link className="navbar-brand d-flex align-items-center gap-2" to="/">
-            <i className="bi bi-recycle" style={{ color: "var(--primary)" }} />
-            <span className="gc-brand">Garbage Control</span>
-            <span className="gc-pill">SaaS demo</span>
+            <span className="gc-logo" aria-hidden="true">ЧГ</span>
+            <span className="gc-brand">Чистый Город</span>
           </Link>
 
           <div className="ms-auto d-flex align-items-center gap-2">
@@ -33,7 +32,10 @@ export default function AppLayout({ authed, role, onLogout, children }) {
 
                 {/* координатор */}
                 {isCoord && (
-                  <Link className="btn btn-outline-primary" to="/coord/requests">Панель координатора</Link>
+                  <>
+                    <Link className="btn btn-outline-primary" to="/coord/requests">Панель координатора</Link>
+                    <Link className="btn btn-outline-primary" to="/coord/map">Карта заявок</Link>
+                  </>
                 )}
 
                 {/* админ */}

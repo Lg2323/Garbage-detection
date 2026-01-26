@@ -1,7 +1,9 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
 import http from "../../api/http";
-import { assignWorker, getWorkers, verifyRequest } from "../../api/coord";
+import { assignWorker, getWorkers } from "../../api/coord";
+import { statusClass, statusLabel } from "../../ui/status";
+import Notice from "../../components/Notice";
 
 export default function CoordRequestDetail() {
   const { id } = useParams();
@@ -9,6 +11,7 @@ export default function CoordRequestDetail() {
   const [workers, setWorkers] = useState([]);
   const [workerId, setWorkerId] = useState("");
   const [msg, setMsg] = useState("");
+  const [busy, setBusy] = useState(false);
 
   const load = async () => {
     setMsg("");
@@ -18,70 +21,108 @@ export default function CoordRequestDetail() {
     ]);
     setReq(r);
     setWorkers(w);
+    setWorkerId(r?.assigned_worker || "");
   };
 
-  useEffect(() => { load().catch(e => setMsg("Ошибка: " + e.message)); }, [id]);
+  useEffect(() => {
+    load().catch((e) => setMsg("Ошибка: " + (e.response?.data ? JSON.stringify(e.response.data) : e.message)));
+  }, [id]);
 
   const doAssign = async () => {
     setMsg("");
+    setBusy(true);
     try {
       await assignWorker(id, Number(workerId));
       await load();
       setMsg("Исполнитель назначен");
     } catch (e) {
       setMsg("Ошибка: " + (e.response?.data ? JSON.stringify(e.response.data) : e.message));
+    } finally {
+      setBusy(false);
     }
   };
 
-  const doVerify = async () => {
-    setMsg("");
-    try {
-      const out = await verifyRequest(id);
-      await load();
-      setMsg("Проверка выполнена: " + JSON.stringify(out));
-    } catch (e) {
-      setMsg("Ошибка: " + (e.response?.data ? JSON.stringify(e.response.data) : e.message));
-    }
-  };
+  const beforeUrl = useMemo(() => req?.before_photo || "", [req]);
+  const afterUrl = useMemo(() => req?.after_photo || "", [req]);
 
-  if (!req) return <div>Загрузка...</div>;
+  if (!req) return <div className="card p-3">Загрузка...</div>;
 
   return (
-    <div>
-      <h3>Заявка #{req.id}</h3>
-      {msg && <div style={{ margin: "10px 0" }}>{msg}</div>}
+    <div className="d-grid gap-3 gc-anim gc-anim--up">
+      <div className="card p-3">
+        <div className="d-flex align-items-center justify-content-between">
+          <div>
+            <h4 className="mb-0">Заявка #{req.id}</h4>
+            <div className="text-muted">{req.title}</div>
+          </div>
+          <span className={statusClass(req.status)}>{statusLabel(req.status)}</span>
+        </div>
+        <Notice type="info" text={msg} onClose={() => setMsg("")} />
+      </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
-        <div style={{ border: "1px solid #eee", borderRadius: 12, padding: 12 }}>
-          <div><b>Описание:</b> {req.title}</div>
-          <div><b>Статус:</b> {req.status}</div>
-          <div><b>Заявитель:</b> {req.created_by}</div>
-          <div><b>Исполнитель:</b> {req.assigned_worker ?? "-"}</div>
-          <div><b>Координатор:</b> {req.coordinator ?? "-"}</div>
-          <div style={{ marginTop: 10, fontSize: 12, opacity: 0.75 }}>
-            location: {JSON.stringify(req.location)}
+      <div className="row g-3">
+        <div className="col-lg-6">
+          <div className="card p-3 h-100">
+            <div className="fw-semibold mb-2">Детали</div>
+            <div className="d-grid gap-1">
+              <div><b>Заявитель:</b> {req.created_by}</div>
+              <div><b>Исполнитель:</b> {req.assigned_worker ?? "-"}</div>
+              <div><b>Координатор:</b> {req.coordinator ?? "-"}</div>
+              <div><b>Создана:</b> {new Date(req.created_at).toLocaleString()}</div>
+              <div><b>Обновлена:</b> {new Date(req.updated_at).toLocaleString()}</div>
+              <div className="text-muted" style={{ fontSize: 12 }}>
+                location: {typeof req.location === "string" ? req.location : JSON.stringify(req.location)}
+              </div>
+            </div>
           </div>
         </div>
 
-        <div style={{ border: "1px solid #eee", borderRadius: 12, padding: 12 }}>
-          <div style={{ marginBottom: 8 }}><b>Назначить исполнителя</b></div>
-          <div style={{ display: "flex", gap: 10 }}>
-            <select value={workerId} onChange={(e) => setWorkerId(e.target.value)} style={{ flex: 1 }}>
-              <option value="">-- выбрать --</option>
-              {workers.map((w) => (
-                <option key={w.id} value={w.id}>
-                  #{w.id} {w.username} ({w.email})
-                </option>
-              ))}
-            </select>
-            <button onClick={doAssign} disabled={!workerId}>Назначить</button>
+        <div className="col-lg-6">
+          <div className="card p-3 h-100">
+            <div className="fw-semibold mb-2">Назначить исполнителя</div>
+            <div className="d-flex gap-2">
+              <select
+                className="form-select"
+                value={workerId}
+                onChange={(e) => setWorkerId(e.target.value)}
+              >
+                <option value="">— выбрать —</option>
+                {workers.map((w) => (
+                  <option key={w.id} value={w.id}>
+                    #{w.id} {w.username} ({w.email})
+                  </option>
+                ))}
+              </select>
+              <button className="btn btn-primary" onClick={doAssign} disabled={!workerId || busy}>
+                Назначить
+              </button>
+            </div>
+            <div className="text-muted mt-2" style={{ fontSize: 12 }}>
+              Проверку ИИ подключим позже.
+            </div>
           </div>
+        </div>
+      </div>
 
-          <hr style={{ margin: "14px 0" }} />
-
-          <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
-            <button onClick={doVerify}>Запустить проверку (verify)</button>
-            <span style={{ fontSize: 12, opacity: 0.7 }}>обычно когда статус ON_CHECK</span>
+      <div className="row g-3">
+        <div className="col-lg-6">
+          <div className="card p-3 h-100">
+            <div className="fw-semibold mb-2">Фото до</div>
+            {beforeUrl ? (
+              <img src={beforeUrl} alt="before" className="img-fluid rounded" />
+            ) : (
+              <div className="text-muted">Нет фото</div>
+            )}
+          </div>
+        </div>
+        <div className="col-lg-6">
+          <div className="card p-3 h-100">
+            <div className="fw-semibold mb-2">Фото после</div>
+            {afterUrl ? (
+              <img src={afterUrl} alt="after" className="img-fluid rounded" />
+            ) : (
+              <div className="text-muted">Нет фото</div>
+            )}
           </div>
         </div>
       </div>

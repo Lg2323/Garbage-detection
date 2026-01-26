@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { createUser, listUsers, updateUser } from "../../api/admin";
+import Notice from "../../components/Notice";
 
 const ROLES = ["CITIZEN", "WORKER", "COORDINATOR", "ADMIN"];
 
@@ -93,7 +94,7 @@ export default function AdminUsers() {
   };
 
   return (
-    <div className="d-grid gap-3">
+    <div className="d-grid gap-3 gc-anim gc-anim--up">
       <div className="card p-3">
         <h4 className="mb-2">Создать пользователя</h4>
         <form className="row g-2" onSubmit={submitCreate}>
@@ -161,7 +162,7 @@ export default function AdminUsers() {
         </form>
       </div>
 
-      {msg && <div className="alert alert-danger mb-0">{msg}</div>}
+      <Notice type="danger" text={msg} onClose={() => setMsg("")} />
 
       <div className="card p-3">
         <div className="d-flex align-items-center justify-content-between mb-3">

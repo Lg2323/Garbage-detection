@@ -1,5 +1,6 @@
 import { useState } from "react";
 import http from "../api/http";
+import Notice from "../components/Notice";
 
 export default function CreateRequest() {
   const [title, setTitle] = useState("");
@@ -10,8 +11,8 @@ export default function CreateRequest() {
   const submit = async () => {
     setMsg(null);
 
-    if (!title.trim()) return setMsg({ type: "danger", text: "Введите описание" });
-    if (!photo) return setMsg({ type: "danger", text: "Прикрепите фото" });
+    if (!title.trim()) return setMsg({ type: "warning", text: "Введите описание" });
+    if (!photo) return setMsg({ type: "warning", text: "Прикрепите фото" });
     if (!navigator.geolocation) return setMsg({ type: "danger", text: "Геолокация не поддерживается" });
 
     setBusy(true);
@@ -44,17 +45,22 @@ export default function CreateRequest() {
   };
 
   return (
-    <div className="gc-card gc-card--soft p-4">
+    <div className="gc-card gc-card--soft gc-anim gc-anim--up p-4">
       <div className="mb-3">
         <h4 className="mb-1">Новая заявка</h4>
-        <div className="gc-muted">Опиши проблему, прикрепи фото — координаты возьмём автоматически</div>
+        <div className="gc-muted">Опиши проблему, прикрепи фото — координаты возьмем автоматически</div>
       </div>
 
-      {msg && <div className={`alert alert-${msg.type}`}>{msg.text}</div>}
+      <Notice type={msg?.type} text={msg?.text} onClose={() => setMsg(null)} />
 
       <div className="mb-3">
         <label className="form-label gc-muted">Описание</label>
-        <input className="form-control" placeholder="Например: мусор у входа в парк" value={title} onChange={(e)=>setTitle(e.target.value)} />
+        <input
+          className="form-control"
+          placeholder="Например: мусор у входа в парк"
+          value={title}
+          onChange={(e)=>setTitle(e.target.value)}
+        />
       </div>
 
       <div className="mb-3">

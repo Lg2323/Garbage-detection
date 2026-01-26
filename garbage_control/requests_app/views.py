@@ -4,7 +4,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework import status, generics, permissions
-from .serializers import VerifyRequestSerializer, VerificationResultSerializer, AdminSetStatusSerializer
+from .serializers import VerifyRequestSerializer, VerificationResultSerializer, AdminSetStatusSerializer, RequestDetailSerializer
 from ai_verification.services import verify_cleanup
 from .models import Request,VerificationResult
 from .serializers import (
@@ -59,6 +59,8 @@ class RequestViewSet(ModelViewSet):
     def get_serializer_class(self):
         if self.action == 'create':
             return RequestCreateSerializer
+        if self.action == 'retrieve':
+            return RequestDetailSerializer
         return RequestListSerializer
 
     # ---------- Permissions по действиям ----------
