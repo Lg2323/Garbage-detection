@@ -24,6 +24,7 @@ export default function AppLayout({ authed, role, onLogout, children }) {
             {authed && (
               <>
                 <Link className="btn btn-light" to="/requests">Заявки</Link>
+                <Link className="btn btn-light" to="/works">Выполненные работы</Link>
 
                 {/* создавать заявку может только гражданин */}
                 {role === "CITIZEN" && (

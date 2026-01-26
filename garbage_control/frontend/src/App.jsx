@@ -7,6 +7,7 @@ import Login from "./pages/Login";
 import Register from "./pages/Register";
 import RequestsList from "./pages/RequestsList";
 import CreateRequest from "./pages/CreateRequest";
+import CompletedRequests from "./pages/CompletedRequests";
 
 import CoordinatorRequests from "./pages/coord/CoordRequests";
 import RequestDetail from "./pages/coord/CoordRequestDetail";
@@ -57,6 +58,7 @@ export default function App() {
 
         {/* citizen */}
         <Route path="/requests" element={authed ? <RequestsList /> : <Navigate to="/login" />} />
+        <Route path="/works" element={authed ? <CompletedRequests /> : <Navigate to="/login" />} />
         <Route
           path="/requests/new"
           element={

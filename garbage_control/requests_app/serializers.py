@@ -40,6 +40,19 @@ class RequestDetailSerializer(serializers.ModelSerializer):
         )
 
 
+class RequestCompletedSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Request
+        fields = (
+            "id",
+            "title",
+            "status",
+            "after_photo",
+            "created_at",
+            "updated_at",
+        )
+
+
 class AssignWorkerSerializer(serializers.Serializer):
     worker_id = serializers.IntegerField(min_value=1)
 

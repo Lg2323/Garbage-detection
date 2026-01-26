@@ -1,19 +1,13 @@
-from django.shortcuts import render
-from rest_framework import generics, permissions
-from .serializers import RegisterSerializer
-from django.conf import settings
-from rest_framework import permissions, status
+from django.contrib.auth import get_user_model
+from rest_framework import generics, permissions, status
+from rest_framework.generics import ListAPIView
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
-from rest_framework_simplejwt.exceptions import InvalidToken, TokenError
-from django.contrib.auth import get_user_model
-from rest_framework.permissions import IsAuthenticated
-from rest_framework import status
-from .serializers import UserSerializer
-from rest_framework.generics import ListAPIView
 
+from .serializers import RegisterSerializer, UserSerializer
 
 User = get_user_model()
 
@@ -72,16 +66,17 @@ class CookieTokenRefreshView(TokenRefreshView):
     def post(self, request, *args, **kwargs):
         refresh = request.COOKIES.get(REFRESH_COOKIE_NAME)
         if not refresh:
-            return Response({"detail": "No refresh cookie"}, status=401)
+            return Response({"detail": "No refresh cookie"}, status=status.HTTP_401_UNAUTHORIZED)
 
-        # подсовываем refresh в data, дальше simplejwt всё сделает сам,
-        # включая ROTATE_REFRESH_TOKENS + BLACKLIST_AFTER_ROTATION, если включишь
-        request.data["refresh"] = refresh
-        response = super().post(request, *args, **kwargs)
+        # Do not mutate request.data (QueryDict can be immutable)
+        serializer = self.get_serializer(data={"refresh": refresh})
+        serializer.is_valid(raise_exception=True)
+        data = serializer.validated_data
 
-        if response.status_code == 200 and "refresh" in response.data:
+        response = Response(data, status=status.HTTP_200_OK)
+        if "refresh" in response.data:
             _set_refresh_cookie(response, response.data["refresh"])
-            # не светим refresh в body
+            # Do not expose refresh in response body
             del response.data["refresh"]
 
         return response

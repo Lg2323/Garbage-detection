@@ -3,8 +3,14 @@ from rest_framework.viewsets import ModelViewSet
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from rest_framework import status, generics, permissions
-from .serializers import VerifyRequestSerializer, VerificationResultSerializer, AdminSetStatusSerializer, RequestDetailSerializer
+from rest_framework import status
+from .serializers import (
+    VerifyRequestSerializer,
+    VerificationResultSerializer,
+    AdminSetStatusSerializer,
+    RequestDetailSerializer,
+    RequestCompletedSerializer,
+)
 from ai_verification.services import verify_cleanup
 from .models import Request,VerificationResult
 from .serializers import (
@@ -16,18 +22,6 @@ from .serializers import (
 from .permissions import IsCitizen, IsCoordinatorOrAdmin, IsWorker, IsAdminRole
 
 User = get_user_model()
-
-class RequestListCreateView(generics.ListCreateAPIView):
-    queryset = Request.objects.all().order_by("-created_at")
-    permission_classes = [permissions.IsAuthenticated]
-
-    def get_serializer_class(self):
-        return RequestCreateSerializer if self.request.method == "POST" else RequestListSerializer
-
-    def perform_create(self, serializer):
-        serializer.save(created_by=self.request.user)
-
-
 
 class RequestViewSet(ModelViewSet):
     permission_classes = [IsAuthenticated]
@@ -98,14 +92,15 @@ class RequestViewSet(ModelViewSet):
             return Response({'error': 'Исполнитель не найден'}, status=status.HTTP_404_NOT_FOUND)
 
         # Нормальная логика: назначать можно только "CREATED" или уже "VERIFIED" (переназначение)
+        if req.status == Request.Status.COMPLETED:
+            return Response({'error': 'Заявка уже завершена'}, status=status.HTTP_400_BAD_REQUEST)
+
         if req.status not in (Request.Status.CREATED, Request.Status.VERIFIED):
             return Response(
                 {'error': f'Нельзя назначить исполнителя для статуса {req.status}'},
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        if req.status == Request.Status.COMPLETED:
-            return Response({'error': 'Заявка уже завершена'}, status=status.HTTP_400_BAD_REQUEST)
 
         req.assigned_worker = worker
         req.coordinator = request.user
@@ -222,3 +217,9 @@ class RequestViewSet(ModelViewSet):
             },
             status=status.HTTP_200_OK
         )
+
+    @action(detail=False, methods=['get'], permission_classes=[IsAuthenticated])
+    def completed(self, request):
+        qs = Request.objects.filter(status=Request.Status.COMPLETED).order_by("-updated_at")
+        ser = RequestCompletedSerializer(qs, many=True, context={"request": request})
+        return Response(ser.data)

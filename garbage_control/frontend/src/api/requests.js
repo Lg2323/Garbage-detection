@@ -5,6 +5,11 @@ export async function getRequests() {
   return res.data;
 }
 
+export async function getCompletedRequests() {
+  const res = await http.get("/api/requests/completed/");
+  return res.data;
+}
+
 export async function getRequest(id) {
   const res = await http.get(`/api/requests/${id}/`);
   return res.data;
