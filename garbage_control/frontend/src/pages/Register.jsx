@@ -29,7 +29,6 @@ export default function Register({ onDone }) {
     <div className="gc-card gc-anim gc-anim--up p-4">
       <div className="d-flex align-items-center justify-content-between mb-3">
         <h4 className="m-0">Регистрация</h4>
-        <span className="gc-muted">роль: CITIZEN по умолчанию</span>
       </div>
 
       <Notice type={msg?.type} text={msg?.text} onClose={() => setMsg(null)} />
