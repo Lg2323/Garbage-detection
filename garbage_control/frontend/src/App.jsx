@@ -1,4 +1,4 @@
-import { Routes, Route, Navigate } from "react-router-dom";
+import { Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { useEffect, useState } from "react";
 import AppLayout from "./components/AppLayout";
 import RoleGuard from "./components/RoleGuard";
@@ -8,6 +8,8 @@ import Register from "./pages/Register";
 import RequestsList from "./pages/RequestsList";
 import CreateRequest from "./pages/CreateRequest";
 import CompletedRequests from "./pages/CompletedRequests";
+import CityStats from "./pages/CityStats";
+import Faq from "./pages/Faq";
 
 import CoordinatorRequests from "./pages/coord/CoordRequests";
 import RequestDetail from "./pages/coord/CoordRequestDetail";
@@ -21,6 +23,7 @@ import AdminLayout from "./pages/admin/AdminLayout";
 import { bootstrapAuth, logoutUser, getMe } from "./api/auth";
 
 export default function App() {
+  const location = useLocation();
   const [authed, setAuthed] = useState(false);
   const [loading, setLoading] = useState(true);
   const [me, setMe] = useState(null); 
@@ -50,19 +53,21 @@ export default function App() {
   if (loading) return <div className="container py-4">Загрузка...</div>;
 
   return (
-    <AppLayout authed={authed} role={me?.role} onLogout={doLogout}>
+    <AppLayout authed={authed} role={me?.role} onLogout={doLogout} pageKey={location.pathname}>
       <Routes>
         {/* public */}
         <Route path="/login" element={!authed ? <Login onDone={async()=>{ setAuthed(true); setMe(await getMe()); }} /> : <Navigate to="/requests" />} />
         <Route path="/register" element={!authed ? <Register onDone={async()=>{ setAuthed(true); setMe(await getMe()); }} /> : <Navigate to="/requests" />} />
+        <Route path="/faq" element={<Faq />} />
 
         {/* citizen */}
         <Route path="/requests" element={authed ? <RequestsList /> : <Navigate to="/login" />} />
         <Route path="/works" element={authed ? <CompletedRequests /> : <Navigate to="/login" />} />
+        <Route path="/stats" element={authed ? <CityStats /> : <Navigate to="/login" />} />
         <Route
           path="/requests/new"
           element={
-            <RoleGuard authed={authed} role={me?.role} allow={["CITIZEN"]}>
+            <RoleGuard authed={authed} role={me?.role} allow={["CITIZEN", "ADMIN"]}>
               <CreateRequest />
             </RoleGuard>
           }
@@ -108,7 +113,7 @@ export default function App() {
           <Route path="requests" element={<AdminRequests />} />
         </Route>
 
-        <Route path="/" element={<Navigate to={authed ? "/requests" : "/login"} />} />
+        <Route path="/" element={authed ? <CompletedRequests /> : <Navigate to="/login" />} />
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>
     </AppLayout>

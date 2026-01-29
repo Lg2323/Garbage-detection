@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { createUser, listUsers, updateUser } from "../../api/admin";
 import Notice from "../../components/Notice";
+import Pagination from "../../components/Pagination";
 
 const ROLES = ["CITIZEN", "WORKER", "COORDINATOR", "ADMIN"];
 
@@ -10,6 +11,8 @@ export default function AdminUsers() {
   const [msg, setMsg] = useState("");
   const [busy, setBusy] = useState(false);
   const [drafts, setDrafts] = useState({});
+  const [page, setPage] = useState(1);
+  const pageSize = 12;
 
   const [form, setForm] = useState({
     username: "",
@@ -34,6 +37,7 @@ export default function AdminUsers() {
     load();
   }, []);
 
+
   const filtered = useMemo(() => {
     const s = q.trim().toLowerCase();
     if (!s) return items;
@@ -44,6 +48,15 @@ export default function AdminUsers() {
         String(u.id).includes(s)
     );
   }, [items, q]);
+  useEffect(() => {
+    setPage(1);
+  }, [filtered.length, q]);
+
+
+  const pagedItems = useMemo(() => {
+    const start = (page - 1) * pageSize;
+    return filtered.slice(start, start + pageSize);
+  }, [filtered, page, pageSize]);
 
   const setDraft = (id, patch) => {
     setDrafts((prev) => ({ ...prev, [id]: { ...prev[id], ...patch } }));
@@ -194,7 +207,7 @@ export default function AdminUsers() {
               </tr>
             </thead>
             <tbody>
-              {filtered.map((u) => {
+              {pagedItems.map((u) => {
                 const d = getDraft(u);
                 return (
                   <tr key={u.id}>
@@ -251,6 +264,9 @@ export default function AdminUsers() {
             </tbody>
           </table>
         </div>
+
+        <Pagination page={page} pageSize={pageSize} total={filtered.length} onPageChange={setPage} />
+
       </div>
     </div>
   );

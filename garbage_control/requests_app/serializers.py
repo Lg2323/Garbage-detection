@@ -47,6 +47,7 @@ class RequestCompletedSerializer(serializers.ModelSerializer):
             "id",
             "title",
             "status",
+            "before_photo",
             "after_photo",
             "created_at",
             "updated_at",

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { assignWorker, listRequests, listWorkers, setRequestStatus } from "../../api/admin";
 import { statusLabel } from "../../ui/status";
 import Notice from "../../components/Notice";
+import Pagination from "../../components/Pagination";
 
 const STATUSES = ["CREATED", "VERIFIED", "IN_PROGRESS", "ON_CHECK", "COMPLETED"];
 
@@ -13,6 +14,8 @@ export default function AdminRequests() {
   const [msg, setMsg] = useState("");
   const [busy, setBusy] = useState(false);
   const [drafts, setDrafts] = useState({});
+  const [page, setPage] = useState(1);
+  const pageSize = 12;
 
   const loadRequests = async () => {
     try {
@@ -41,11 +44,21 @@ export default function AdminRequests() {
     loadRequests();
   }, [statusFilter]);
 
+
   const filtered = useMemo(() => {
     const s = q.trim().toLowerCase();
     if (!s) return items;
     return items.filter((x) => (x.title || "").toLowerCase().includes(s) || String(x.id).includes(s));
   }, [items, q]);
+  useEffect(() => {
+    setPage(1);
+  }, [filtered.length, q, statusFilter]);
+
+
+  const pagedItems = useMemo(() => {
+    const start = (page - 1) * pageSize;
+    return filtered.slice(start, start + pageSize);
+  }, [filtered, page, pageSize]);
 
   const setDraft = (id, patch) => {
     setDrafts((prev) => ({ ...prev, [id]: { ...prev[id], ...patch } }));
@@ -137,7 +150,7 @@ export default function AdminRequests() {
             </tr>
           </thead>
           <tbody>
-            {filtered.map((r) => {
+            {pagedItems.map((r) => {
               const d = getDraft(r);
               return (
                 <tr key={r.id}>
@@ -188,6 +201,9 @@ export default function AdminRequests() {
           </tbody>
         </table>
       </div>
+
+      <Pagination page={page} pageSize={pageSize} total={filtered.length} onPageChange={setPage} />
+
     </div>
   );
 }

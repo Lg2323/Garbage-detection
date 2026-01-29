@@ -10,6 +10,11 @@ export async function getCompletedRequests() {
   return res.data;
 }
 
+export async function getCityStats() {
+  const res = await http.get("/api/requests/stats/");
+  return res.data;
+}
+
 export async function getRequest(id) {
   const res = await http.get(`/api/requests/${id}/`);
   return res.data;

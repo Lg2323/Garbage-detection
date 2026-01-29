@@ -1,59 +1,71 @@
 import { Link } from "react-router-dom";
 
-export default function AppLayout({ authed, role, onLogout, children }) {
+export default function AppLayout({ authed, role, onLogout, pageKey, children }) {
   const isCoord = role === "COORDINATOR" || role === "ADMIN";
   const isAdmin = role === "ADMIN";
 
+
   return (
     <>
-      <nav className="navbar navbar-expand-lg sticky-top gc-nav">
-        <div className="container gc-container">
+      <nav className="navbar sticky-top gc-nav">
+        <div className="container gc-container gc-nav-inner">
           <Link className="navbar-brand d-flex align-items-center gap-2" to="/">
             <span className="gc-logo" aria-hidden="true">ЧГ</span>
             <span className="gc-brand">Чистый Город</span>
           </Link>
 
-          <div className="ms-auto d-flex align-items-center gap-2">
-            {!authed && (
-              <>
-                <Link className="btn btn-light" to="/login">Вход</Link>
-                <Link className="btn btn-primary" to="/register">Регистрация</Link>
-              </>
-            )}
+          <div className="gc-nav-links">
+            <Link className="gc-nav-link" to="/">Главная</Link>
 
-            {authed && (
-              <>
-                <Link className="btn btn-light" to="/requests">Заявки</Link>
-                <Link className="btn btn-light" to="/works">Выполненные работы</Link>
-
-                {/* создавать заявку может только гражданин */}
-                {role === "CITIZEN" && (
-                  <Link className="btn btn-primary" to="/requests/new">Создать</Link>
-                )}
-
-                {/* координатор */}
-                {isCoord && (
+            <div className="gc-menu">
+              <button className="gc-nav-link gc-menu__toggle" type="button">
+                Меню ▾
+              </button>
+              <div className="gc-menu__panel">
+                {!authed && (
                   <>
-                    <Link className="btn btn-outline-primary" to="/coord/requests">Панель координатора</Link>
-                    <Link className="btn btn-outline-primary" to="/coord/map">Карта заявок</Link>
+                    <Link className="gc-menu__item" to="/login">Вход</Link>
+                    <Link className="gc-menu__item" to="/register">Регистрация</Link>
+                    <Link className="gc-menu__item" to="/faq">Инструкции</Link>
                   </>
                 )}
 
-                {/* админ */}
-                {isAdmin && (
-                  <Link className="btn btn-outline-dark" to="/admin">Админ-панель</Link>
-                )}
+                {authed && (
+                  <>
+                    <Link className="gc-menu__item" to="/faq">Инструкции</Link>
+                    <Link className="gc-menu__item" to="/stats">Статистика города</Link>
+                    <Link className="gc-menu__item" to="/requests">Заявки</Link>
+                    <Link className="gc-menu__item" to="/works">Выполненные работы</Link>
 
-                <button className="btn btn-outline-secondary" onClick={onLogout}>
-                  Выйти
-                </button>
-              </>
-            )}
+                    {(role === "CITIZEN" || role === "ADMIN") && (
+                      <Link className="gc-menu__item gc-menu__item--accent" to="/requests/new">
+                        Создать заявку
+                      </Link>
+                    )}
+
+                    {isCoord && (
+                      <>
+                        <Link className="gc-menu__item" to="/coord/requests">Панель координатора</Link>
+                        <Link className="gc-menu__item" to="/coord/map">Карта заявок</Link>
+                      </>
+                    )}
+
+                    {isAdmin && (
+                      <Link className="gc-menu__item" to="/admin">Админ-панель</Link>
+                    )}
+
+                    <button className="gc-menu__item gc-menu__item--ghost" onClick={onLogout} type="button">
+                      Выйти
+                    </button>
+                  </>
+                )}
+              </div>
+            </div>
           </div>
         </div>
       </nav>
 
-      <main className="container gc-container py-4">{children}</main>
+      <main key={pageKey} className="container gc-container py-4 gc-page">{children}</main>
     </>
   );
 }

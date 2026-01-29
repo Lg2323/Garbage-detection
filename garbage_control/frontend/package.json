@@ -10,6 +10,11 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@nivo/colors": "^0.99.0",
+    "@nivo/core": "^0.99.0",
+    "@nivo/legends": "^0.99.0",
+    "@nivo/pie": "^0.99.0",
+    "@nivo/tooltip": "^0.99.0",
     "axios": "^1.13.2",
     "bootstrap": "^5.3.8",
     "bootstrap-icons": "^1.13.1",

@@ -14,6 +14,9 @@ class HasRole(BasePermission):
 class IsCitizen(HasRole):
     allowed_roles = {'CITIZEN'}
 
+class IsCitizenOrAdmin(HasRole):
+    allowed_roles = {'CITIZEN', 'ADMIN'}
+
 
 class IsWorker(HasRole):
     allowed_roles = {'WORKER'}

@@ -1,4 +1,5 @@
 from django.contrib.auth import get_user_model
+from django.db.models import Avg, Count, ExpressionWrapper, F, DurationField
 from rest_framework.viewsets import ModelViewSet
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.decorators import action
@@ -19,7 +20,7 @@ from .serializers import (
     AssignWorkerSerializer,
     UploadAfterPhotoSerializer,
 )
-from .permissions import IsCitizen, IsCoordinatorOrAdmin, IsWorker, IsAdminRole
+from .permissions import IsCitizenOrAdmin, IsCoordinatorOrAdmin, IsWorker, IsAdminRole
 
 User = get_user_model()
 
@@ -60,7 +61,7 @@ class RequestViewSet(ModelViewSet):
     # ---------- Permissions по действиям ----------
     def get_permissions(self):
         if self.action == 'create':
-            return [IsAuthenticated(), IsCitizen()]
+            return [IsAuthenticated(), IsCitizenOrAdmin()]
 
         if self.action in ('assign_worker',):
             return [IsAuthenticated(), IsCoordinatorOrAdmin()]
@@ -223,3 +224,27 @@ class RequestViewSet(ModelViewSet):
         qs = Request.objects.filter(status=Request.Status.COMPLETED).order_by("-updated_at")
         ser = RequestCompletedSerializer(qs, many=True, context={"request": request})
         return Response(ser.data)
+
+    @action(detail=False, methods=['get'], permission_classes=[IsAuthenticated])
+    def stats(self, request):
+        qs = Request.objects.all()
+        total = qs.count()
+        by_status = list(qs.values("status").annotate(count=Count("id")).order_by("status"))
+
+        completed_qs = qs.filter(status=Request.Status.COMPLETED)
+        duration_expr = ExpressionWrapper(
+            F("updated_at") - F("created_at"),
+            output_field=DurationField(),
+        )
+        avg_duration = completed_qs.aggregate(avg=Avg(duration_expr)).get("avg")
+        avg_hours = round(avg_duration.total_seconds() / 3600, 2) if avg_duration else None
+
+        return Response(
+            {
+                "total": total,
+                "by_status": by_status,
+                "completed": completed_qs.count(),
+                "completion_rate": round((completed_qs.count() / total * 100), 2) if total else 0,
+                "avg_completion_hours": avg_hours,
+            }
+        )

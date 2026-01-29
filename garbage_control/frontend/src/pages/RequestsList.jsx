@@ -3,6 +3,7 @@ import { getRequests } from "../api/requests";
 import http from "../api/http";
 import { statusClass, statusLabel } from "../ui/status";
 import Notice from "../components/Notice";
+import Pagination from "../components/Pagination";
 
 const StatusBadge = ({ s }) => (
   <span className={statusClass(s)}>{statusLabel(s)}</span>
@@ -24,12 +25,23 @@ export default function RequestsList() {
   const [photo, setPhoto] = useState(null);
   const [busy, setBusy] = useState(false);
   const [formMsg, setFormMsg] = useState(null);
+  const [page, setPage] = useState(1);
+  const pageSize = 8;
 
   useEffect(() => {
     getRequests()
       .then((res) => setItems(res.data ?? res))
       .catch((e) => setMsg("Ошибка: " + (e.response?.data ? JSON.stringify(e.response.data) : e.message)));
   }, []);
+  useEffect(() => {
+    setPage(1);
+  }, [items.length]);
+
+
+  const pagedItems = useMemo(() => {
+    const start = (page - 1) * pageSize;
+    return items.slice(start, start + pageSize);
+  }, [items, page, pageSize]);
 
   const hasActive = useMemo(() => items.some((r) => r.status !== "COMPLETED"), [items]);
 
@@ -100,7 +112,7 @@ export default function RequestsList() {
             </tr>
           </thead>
           <tbody>
-            {items.map((r) => (
+            {pagedItems.map((r) => (
               <tr key={r.id}>
                 <td className="fw-semibold">#{r.id}</td>
                 <td>{r.title}</td>
@@ -119,6 +131,8 @@ export default function RequestsList() {
           </tbody>
         </table>
       </div>
+
+      <Pagination page={page} pageSize={pageSize} total={items.length} onPageChange={setPage} />
 
       {open && (
         <div className="gc-modal">
