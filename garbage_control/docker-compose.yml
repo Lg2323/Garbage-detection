@@ -26,6 +26,14 @@ services:
       DB_PASSWORD: postgres
       DB_HOST: db
       DB_PORT: "5432"
+      EMAIL_BACKEND: django.core.mail.backends.smtp.EmailBackend
+      DEFAULT_FROM_EMAIL: emilka22866@mail.ru
+      EMAIL_HOST: smtp.mail.ru
+      EMAIL_PORT: "587"
+      EMAIL_HOST_USER: emilka22866@mail.ru
+      EMAIL_HOST_PASSWORD: N9PixYSevoNYL0BndnrZ
+      EMAIL_USE_TLS: "True"
+      FRONTEND_BASE_URL: "http://localhost:3000"
 
   frontend:
     image: node:20-alpine

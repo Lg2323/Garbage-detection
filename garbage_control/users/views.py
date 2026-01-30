@@ -1,4 +1,9 @@
 from django.contrib.auth import get_user_model
+from django.contrib.auth.tokens import default_token_generator
+from django.core.mail import send_mail
+from django.utils.encoding import force_bytes
+from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
+from django.conf import settings
 from rest_framework import generics, permissions, status
 from rest_framework.generics import ListAPIView
 from rest_framework.permissions import IsAuthenticated
@@ -7,7 +12,12 @@ from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
-from .serializers import RegisterSerializer, UserSerializer
+from .serializers import (
+    RegisterSerializer,
+    UserSerializer,
+    PasswordResetRequestSerializer,
+    PasswordResetConfirmSerializer,
+)
 
 User = get_user_model()
 
@@ -31,7 +41,10 @@ class RegisterView(generics.CreateAPIView):
 
 REFRESH_COOKIE_NAME = "refresh_token"
 
+# Store refresh token in an httpOnly cookie for web clients.
+
 def _set_refresh_cookie(response: Response, refresh: str):
+    # Keep refresh token out of JS-accessible storage.
     response.set_cookie(
         REFRESH_COOKIE_NAME,
         refresh,
@@ -43,6 +56,7 @@ def _set_refresh_cookie(response: Response, refresh: str):
     )
 
 def _delete_refresh_cookie(response: Response):
+    # Remove refresh cookie on logout.
     response.delete_cookie(REFRESH_COOKIE_NAME, path="/api/auth/")
 
 class CookieTokenObtainPairView(TokenObtainPairView):
@@ -64,6 +78,7 @@ class CookieTokenRefreshView(TokenRefreshView):
     permission_classes = [permissions.AllowAny]
 
     def post(self, request, *args, **kwargs):
+        # Read refresh token from cookie instead of request body.
         refresh = request.COOKIES.get(REFRESH_COOKIE_NAME)
         if not refresh:
             return Response({"detail": "No refresh cookie"}, status=status.HTTP_401_UNAUTHORIZED)
@@ -83,6 +98,7 @@ class CookieTokenRefreshView(TokenRefreshView):
 
 class LogoutView(APIView):
     def post(self, request):
+        # Best-effort blacklist to invalidate refresh token.
         # Опционально: заблэклистить refresh (если есть)
         refresh = request.COOKIES.get(REFRESH_COOKIE_NAME)
         if refresh:
@@ -104,3 +120,55 @@ class WorkersListView(ListAPIView):
         if self.request.user.role not in ("COORDINATOR", "ADMIN"):
             return User.objects.none()
         return User.objects.filter(role="WORKER").only("id", "username", "email")
+
+
+class PasswordResetRequestView(APIView):
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request):
+        # Always respond 200 to avoid leaking user existence.
+        serializer = PasswordResetRequestSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        email = serializer.validated_data["email"]
+
+        user = User.objects.filter(email__iexact=email, is_active=True).first()
+        if user:
+            uid = urlsafe_base64_encode(force_bytes(user.pk))
+            token = default_token_generator.make_token(user)
+            reset_link = f"{settings.FRONTEND_BASE_URL}/reset-password/{uid}/{token}"
+
+            send_mail(
+                subject="Password reset",
+                message=f"Use this link to reset your password: {reset_link}",
+                from_email=settings.DEFAULT_FROM_EMAIL,
+                recipient_list=[email],
+                fail_silently=True,
+            )
+
+        # Always return success to avoid leaking user existence
+        return Response({"detail": "If the account exists, a reset email was sent."}, status=status.HTTP_200_OK)
+
+
+class PasswordResetConfirmView(APIView):
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request):
+        # Validate token and set new password atomically.
+        serializer = PasswordResetConfirmSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        uid = serializer.validated_data["uid"]
+        token = serializer.validated_data["token"]
+        new_password = serializer.validated_data["new_password"]
+
+        try:
+            user_id = urlsafe_base64_decode(uid).decode()
+            user = User.objects.get(pk=user_id)
+        except Exception:
+            return Response({"detail": "Invalid link."}, status=status.HTTP_400_BAD_REQUEST)
+
+        if not default_token_generator.check_token(user, token):
+            return Response({"detail": "Invalid or expired token."}, status=status.HTTP_400_BAD_REQUEST)
+
+        user.set_password(new_password)
+        user.save(update_fields=["password"])
+        return Response({"detail": "Password updated."}, status=status.HTTP_200_OK)

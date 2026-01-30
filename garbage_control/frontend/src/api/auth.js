@@ -29,3 +29,17 @@ export async function logoutUser() {
     clearAccessToken();
   }
 }
+
+export async function requestPasswordReset(email) {
+  const res = await http.post("/api/auth/password-reset/", { email });
+  return res.data;
+}
+
+export async function confirmPasswordReset({ uid, token, newPassword }) {
+  const res = await http.post("/api/auth/password-reset/confirm/", {
+    uid,
+    token,
+    new_password: newPassword,
+  });
+  return res.data;
+}

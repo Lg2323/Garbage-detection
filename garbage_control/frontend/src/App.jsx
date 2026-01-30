@@ -5,6 +5,8 @@ import RoleGuard from "./components/RoleGuard";
 
 import Login from "./pages/Login";
 import Register from "./pages/Register";
+import ForgotPassword from "./pages/ForgotPassword";
+import ResetPassword from "./pages/ResetPassword";
 import RequestsList from "./pages/RequestsList";
 import CreateRequest from "./pages/CreateRequest";
 import CompletedRequests from "./pages/CompletedRequests";
@@ -58,6 +60,8 @@ export default function App() {
         {/* public */}
         <Route path="/login" element={!authed ? <Login onDone={async()=>{ setAuthed(true); setMe(await getMe()); }} /> : <Navigate to="/requests" />} />
         <Route path="/register" element={!authed ? <Register onDone={async()=>{ setAuthed(true); setMe(await getMe()); }} /> : <Navigate to="/requests" />} />
+        <Route path="/forgot-password" element={!authed ? <ForgotPassword /> : <Navigate to="/requests" />} />
+        <Route path="/reset-password/:uid/:token" element={<ResetPassword />} />
         <Route path="/faq" element={<Faq />} />
 
         {/* citizen */}

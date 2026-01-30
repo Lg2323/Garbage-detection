@@ -1,16 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
-import { ResponsivePie } from "@nivo/pie";
 import { getCityStats } from "../api/requests";
-import { statusLabel } from "../ui/status";
 import Notice from "../components/Notice";
-
-const STATUS_COLORS = {
-  CREATED: "#a855f7",
-  VERIFIED: "#7c3aed",
-  IN_PROGRESS: "#ec4899",
-  ON_CHECK: "#f472b6",
-  COMPLETED: "#8b5cf6",
-};
+import StatsPieChart from "../components/city-stats/StatsPieChart";
+import StatsStatusList from "../components/city-stats/StatsStatusList";
+import StatsSummaryCards from "../components/city-stats/StatsSummaryCards";
 
 export default function CityStats() {
   const [data, setData] = useState(null);
@@ -24,7 +17,7 @@ export default function CityStats() {
       const res = await getCityStats();
       setData(res);
     } catch (e) {
-      setMsg("??????: " + (e.response?.data ? JSON.stringify(e.response.data) : e.message));
+      setMsg("Ошибка: " + (e.response?.data ? JSON.stringify(e.response.data) : e.message));
     } finally {
       setLoading(false);
     }
@@ -34,23 +27,7 @@ export default function CityStats() {
     load();
   }, []);
 
-  const byStatus = useMemo(() => {
-    if (!data?.by_status) return [];
-    return data.by_status;
-  }, [data]);
-
-  const pieData = useMemo(() => {
-    return byStatus.map((s) => ({
-      id: s.status,
-      label: statusLabel(s.status),
-      value: s.count || 0,
-      color: STATUS_COLORS[s.status] || "#c084fc",
-    }));
-  }, [byStatus]);
-
-  const total = useMemo(() => {
-    return byStatus.reduce((sum, s) => sum + (s.count || 0), 0);
-  }, [byStatus]);
+  const byStatus = useMemo(() => data?.by_status ?? [], [data]);
 
   return (
     <div className="gc-card gc-card--soft gc-anim gc-anim--up p-4">
@@ -66,76 +43,15 @@ export default function CityStats() {
 
       {msg && <Notice type="danger" text={msg} onClose={() => setMsg("")} />}
 
-      <div className="gc-stats-grid">
-        <div className="gc-stat-card">
-          <div className="gc-muted">Всего заявок</div>
-          <div className="gc-stat-value">{data?.total ?? "-"}</div>
-        </div>
-        <div className="gc-stat-card">
-          <div className="gc-muted">Завершено</div>
-          <div className="gc-stat-value">{data?.completed ?? "-"}</div>
-        </div>
-        <div className="gc-stat-card">
-          <div className="gc-muted">Доля завершенных</div>
-          <div className="gc-stat-value">{data ? `${data.completion_rate}%` : "-"}</div>
-        </div>
-        <div className="gc-stat-card">
-          <div className="gc-muted">Среднее время выполнения, час</div>
-          <div className="gc-stat-value">{data?.avg_completion_hours ?? "-"}</div>
-        </div>
-      </div>
+      <StatsSummaryCards
+        total={data?.total}
+        completed={data?.completed}
+        completionRate={data?.completion_rate}
+        avgHours={data?.avg_completion_hours}
+      />
 
-      <div className="gc-card gc-card--soft p-3 mt-3">
-        <div className="fw-semibold mb-2">Статусы заявок</div>
-        <div className="d-grid gap-2">
-          {byStatus.map((s) => (
-            <div key={s.status} className="d-flex align-items-center justify-content-between">
-              <span className="gc-muted">{statusLabel(s.status)}</span>
-              <span className="fw-semibold">{s.count}</span>
-            </div>
-          ))}
-          {!byStatus.length && <div className="text-muted">-</div>}
-        </div>
-      </div>
-
-      <div className="gc-card gc-card--soft p-3 mt-3">
-        <div className="fw-semibold mb-2">Круговая диаграмма</div>
-        {total ? (
-          <div className="gc-pie">
-            <ResponsivePie
-              data={pieData}
-              margin={{ top: 20, right: 20, bottom: 20, left: 20 }}
-              innerRadius={0.6}
-              padAngle={1}
-              cornerRadius={6}
-              colors={{ datum: "data.color" }}
-              activeOuterRadiusOffset={6}
-              enableArcLabels={false}
-              arcLinkLabelsSkipAngle={10}
-              arcLinkLabelsColor={{ from: "color" }}
-              arcLinkLabelsThickness={2}
-              arcLinkLabelsTextColor="var(--text)"
-              legends={[
-                {
-                  anchor: "right",
-                  direction: "column",
-                  translateX: 140,
-                  itemWidth: 140,
-                  itemHeight: 18,
-                  symbolSize: 12,
-                  symbolShape: "circle",
-                },
-              ]}
-            />
-            <div className="gc-pie__center">
-              <div className="gc-pie__value">{total}</div>
-              <div className="gc-muted">заявок</div>
-            </div>
-          </div>
-        ) : (
-          <div className="text-muted">-</div>
-        )}
-      </div>
+      <StatsStatusList items={byStatus} />
+      <StatsPieChart items={byStatus} />
     </div>
   );
 }

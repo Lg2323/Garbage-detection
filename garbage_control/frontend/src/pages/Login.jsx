@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import { loginUser } from "../api/auth";
 import Notice from "../components/Notice";
 
@@ -54,6 +55,7 @@ export default function Login({ onDone }) {
         <button className="btn btn-primary gc-btn" type="submit" disabled={busy}>
           {busy ? "Вхожу..." : "Войти"}
         </button>
+        <Link className="gc-link-muted" to="/forgot-password">Forgot password?</Link>
       </form>
     </div>
   );

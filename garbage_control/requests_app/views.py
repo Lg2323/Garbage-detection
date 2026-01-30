@@ -29,6 +29,7 @@ class RequestViewSet(ModelViewSet):
 
     # ---------- Queryset по ролям ----------
     def get_queryset(self):
+        # Role-based access: coordinators/admins see all, workers see assigned, citizens see own.
         user = self.request.user
         qs = Request.objects.all().order_by("-created_at")
 
@@ -60,6 +61,7 @@ class RequestViewSet(ModelViewSet):
 
     # ---------- Permissions по действиям ----------
     def get_permissions(self):
+        # Map permissions to actions to keep rules in one place.
         if self.action == 'create':
             return [IsAuthenticated(), IsCitizenOrAdmin()]
 
@@ -76,6 +78,7 @@ class RequestViewSet(ModelViewSet):
 
     # ---------- Create ----------
     def perform_create(self, serializer):
+        # Enforce creator and initial status server-side.
         serializer.save(created_by=self.request.user, status=Request.Status.CREATED)
 
     # ---------- Координатор назначает исполнителя ----------
@@ -129,6 +132,7 @@ class RequestViewSet(ModelViewSet):
     # ---------- Исполнитель загружает фото "после" ----------
     @action(detail=True, methods=['post'])
     def upload_after_photo(self, request, pk=None):
+        # Only assigned worker can upload the after photo.
         req = self.get_object()
 
         if req.assigned_worker_id != request.user.id:
@@ -142,6 +146,7 @@ class RequestViewSet(ModelViewSet):
         ser.is_valid(raise_exception=True)
 
         req.after_photo = ser.validated_data['after_photo']
+        # Move to ON_CHECK so the result can be verified.
         req.status = Request.Status.ON_CHECK
         req.save(update_fields=['after_photo', 'status', 'updated_at'])
 
@@ -165,6 +170,7 @@ class RequestViewSet(ModelViewSet):
 
     @action(detail=True, methods=['post'])
     def verify(self, request, pk=None):
+        # Verification can be triggered only by coordinator/admin.
         """
         Запуск ИИ-проверки результата уборки.
         По-хорошему это действие координатора (или сервиса), а не исполнителя.
@@ -227,6 +233,7 @@ class RequestViewSet(ModelViewSet):
 
     @action(detail=False, methods=['get'], permission_classes=[IsAuthenticated])
     def stats(self, request):
+        # Aggregate totals and average completion time (completed only).
         qs = Request.objects.all()
         total = qs.count()
         by_status = list(qs.values("status").annotate(count=Count("id")).order_by("status"))

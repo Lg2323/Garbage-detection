@@ -74,3 +74,13 @@ class AdminUserUpdateSerializer(serializers.ModelSerializer):
         instance.save()
         return instance
 
+
+class PasswordResetRequestSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+
+
+class PasswordResetConfirmSerializer(serializers.Serializer):
+    uid = serializers.CharField()
+    token = serializers.CharField()
+    new_password = serializers.CharField(min_length=6)
+
