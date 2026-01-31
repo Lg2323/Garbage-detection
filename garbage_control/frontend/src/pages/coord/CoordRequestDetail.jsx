@@ -44,6 +44,15 @@ export default function CoordRequestDetail() {
 
   const beforeUrl = useMemo(() => req?.before_photo || "", [req]);
   const afterUrl = useMemo(() => req?.after_photo || "", [req]);
+  const verification = req?.verification || null;
+  const verificationDetails = verification?.details || {};
+  const reduction =
+    typeof verification?.score === "number"
+      ? verification.score
+      : typeof verificationDetails.reduction === "number"
+        ? verificationDetails.reduction
+        : null;
+  const reductionPct = typeof reduction === "number" ? Math.round(reduction * 100) : null;
 
   if (!req) return <div className="card p-3">Загрузка...</div>;
 
@@ -98,7 +107,22 @@ export default function CoordRequestDetail() {
               </button>
             </div>
             <div className="text-muted mt-2" style={{ fontSize: 12 }}>
-              Проверку ИИ подключим позже.
+              {verification ? (
+                <div className="d-grid gap-1">
+                  <div><b>??:</b> {verification.is_clean ? "?????" : "?? ?????"}</div>
+                  {reductionPct !== null && (
+                    <div><b>????????:</b> {reductionPct}%</div>
+                  )}
+                  {typeof verificationDetails.before_count === "number" && (
+                    <div><b>??:</b> {verificationDetails.before_count}</div>
+                  )}
+                  {typeof verificationDetails.after_count === "number" && (
+                    <div><b>?????:</b> {verificationDetails.after_count}</div>
+                  )}
+                </div>
+              ) : (
+                <>??-???????? ??? ?? ?????? ??????</>
+              )}
             </div>
           </div>
         </div>

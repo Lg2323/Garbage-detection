@@ -29,13 +29,21 @@ class RequestListSerializer(serializers.ModelSerializer):
         )
 
 
+class VerificationResultSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = VerificationResult
+        fields = ("is_clean", "score", "details", "created_at")
+
+
 class RequestDetailSerializer(serializers.ModelSerializer):
+    verification = VerificationResultSerializer(read_only=True)
+
     class Meta:
         model = Request
         fields = (
             "id", "title", "status", "location",
             "created_by", "assigned_worker", "coordinator",
-            "before_photo", "after_photo",
+            "before_photo", "after_photo", "verification",
             "created_at", "updated_at"
         )
 
@@ -62,12 +70,6 @@ class UploadAfterPhotoSerializer(serializers.Serializer):
 
 class VerifyRequestSerializer(serializers.Serializer):
     force = serializers.BooleanField(required=False, default=False)
-
-class VerificationResultSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = VerificationResult
-        fields = ("is_clean", "score", "details", "created_at")
-
 
 class AdminSetStatusSerializer(serializers.Serializer):
     status = serializers.ChoiceField(choices=Request.Status.choices)

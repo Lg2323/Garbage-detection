@@ -36,7 +36,6 @@ INSTALLED_APPS = [
     'requests_app',
     'mediafiles',
     'ai_verification',
-    'analytics',
 ]
 
 MIDDLEWARE = [
@@ -141,6 +140,13 @@ USE_TZ = True
 MEDIA_URL = '/media/'
 
 MEDIA_ROOT = BASE_DIR / 'media'
+
+# AI verification settings
+AI_MODEL_PATH = BASE_DIR / "ai_verification" / "models" / "best.pt"
+AI_CONF_THRESHOLD = float(os.getenv("AI_CONF_THRESHOLD", "0.25"))
+AI_DEVICE = os.getenv("AI_DEVICE", "cpu")
+AI_MIN_REDUCTION = float(os.getenv("AI_MIN_REDUCTION", "0.8"))
+AI_MAX_AFTER = int(os.getenv("AI_MAX_AFTER", "0"))
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/6.0/howto/static-files/
 

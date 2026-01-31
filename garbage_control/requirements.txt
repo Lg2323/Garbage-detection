@@ -5,3 +5,4 @@ Pillow
 django-cors-headers
 djangorestframework-simplejwt
 djangorestframework-simplejwt[crypto]
+ultralytics

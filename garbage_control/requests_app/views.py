@@ -149,11 +149,24 @@ class RequestViewSet(ModelViewSet):
         # Move to ON_CHECK so the result can be verified.
         req.status = Request.Status.ON_CHECK
         req.save(update_fields=['after_photo', 'status', 'updated_at'])
+        out = verify_cleanup(req.before_photo.path, req.after_photo.path)
+        vr, _ = VerificationResult.objects.update_or_create(
+            request=req,
+            defaults={
+                'is_clean': out.is_clean,
+                'score': out.score,
+                'details': out.details,
+            }
+        )
 
-        # - сравнить before/after
-        # - если ок -> COMPLETED
-        # - иначе -> вернуть координатору/в VERIFIED
-        return Response({'status': 'Фото загружено, заявка отправлена на проверку'}, status=status.HTTP_200_OK)
+        return Response(
+            {
+                'status': 'Photo uploaded, request sent for review',
+                'verification': VerificationResultSerializer(vr).data,
+            },
+            status=status.HTTP_200_OK
+        )
+
 
     @action(detail=True, methods=['post'])
     def set_status(self, request, pk=None):
