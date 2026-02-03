@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import logo from "../assets/logo.png";
 
 export default function AppLayout({ authed, role, onLogout, pageKey, children }) {
   const isCoord = role === "COORDINATOR" || role === "ADMIN";
@@ -10,7 +11,7 @@ export default function AppLayout({ authed, role, onLogout, pageKey, children })
       <nav className="navbar sticky-top gc-nav">
         <div className="container gc-container gc-nav-inner">
           <Link className="navbar-brand d-flex align-items-center gap-2" to="/">
-            <span className="gc-logo" aria-hidden="true">ЧГ</span>
+            <img className="gc-logo" src={logo} alt="" aria-hidden="true" />
             <span className="gc-brand">Чистый Город</span>
           </Link>
 

@@ -1,4 +1,5 @@
 from django.contrib.auth import get_user_model
+from django.conf import settings
 from django.db.models import Avg, Count, ExpressionWrapper, F, DurationField
 from rest_framework.viewsets import ModelViewSet
 from rest_framework.permissions import IsAuthenticated
@@ -12,7 +13,9 @@ from .serializers import (
     RequestDetailSerializer,
     RequestCompletedSerializer,
 )
-from ai_verification.services import verify_cleanup
+import logging
+
+from ai_verification.services import verify_cleanup, detect_garbage_before, AIVerifyOutput
 from .models import Request,VerificationResult
 from .serializers import (
     RequestCreateSerializer,
@@ -22,6 +25,7 @@ from .serializers import (
 )
 from .permissions import IsCitizenOrAdmin, IsCoordinatorOrAdmin, IsWorker, IsAdminRole
 
+logger = logging.getLogger(__name__)
 User = get_user_model()
 
 class RequestViewSet(ModelViewSet):
@@ -29,7 +33,7 @@ class RequestViewSet(ModelViewSet):
 
     # ---------- Queryset по ролям ----------
     def get_queryset(self):
-        # Role-based access: coordinators/admins see all, workers see assigned, citizens see own.
+        # Ролевой доступ: координаторы/админы видят всё, исполнители — назначенное, граждане — свои.
         user = self.request.user
         qs = Request.objects.all().order_by("-created_at")
 
@@ -61,7 +65,7 @@ class RequestViewSet(ModelViewSet):
 
     # ---------- Permissions по действиям ----------
     def get_permissions(self):
-        # Map permissions to actions to keep rules in one place.
+        # Соответствие прав и действий, чтобы правила были в одном месте.
         if self.action == 'create':
             return [IsAuthenticated(), IsCitizenOrAdmin()]
 
@@ -78,8 +82,39 @@ class RequestViewSet(ModelViewSet):
 
     # ---------- Create ----------
     def perform_create(self, serializer):
-        # Enforce creator and initial status server-side.
-        serializer.save(created_by=self.request.user, status=Request.Status.CREATED)
+        # Принудительно задаём автора и стартовый статус на сервере.
+        req = serializer.save(created_by=self.request.user, status=Request.Status.CREATED)
+
+        try:
+            out = detect_garbage_before(req.before_photo.path)
+            VerificationResult.objects.update_or_create(
+                request=req,
+                defaults={
+                    "is_clean": out.is_clean,
+                    "score": out.score,
+                    "details": out.details,
+                },
+            )
+
+            found_status = getattr(settings, "AI_ON_BEFORE_FOUND_STATUS", None)
+            not_found_status = getattr(settings, "AI_ON_BEFORE_NOT_FOUND_STATUS", None)
+
+            if out.is_clean is False and found_status in dict(Request.Status.choices):
+                req.status = found_status
+            elif out.is_clean is True and not_found_status in dict(Request.Status.choices):
+                req.status = not_found_status
+
+            req.save(update_fields=["status", "updated_at"])
+        except Exception as exc:
+            logger.exception("AI pre-check failed for request %s", req.id)
+            VerificationResult.objects.update_or_create(
+                request=req,
+                defaults={
+                    "is_clean": False,
+                    "score": None,
+                    "details": {"stage": "before", "error": str(exc)},
+                },
+            )
 
     # ---------- Координатор назначает исполнителя ----------
     @action(detail=True, methods=['post'])
@@ -132,7 +167,7 @@ class RequestViewSet(ModelViewSet):
     # ---------- Исполнитель загружает фото "после" ----------
     @action(detail=True, methods=['post'])
     def upload_after_photo(self, request, pk=None):
-        # Only assigned worker can upload the after photo.
+        # Загружать фото "после" может только назначенный исполнитель.
         req = self.get_object()
 
         if req.assigned_worker_id != request.user.id:
@@ -146,10 +181,14 @@ class RequestViewSet(ModelViewSet):
         ser.is_valid(raise_exception=True)
 
         req.after_photo = ser.validated_data['after_photo']
-        # Move to ON_CHECK so the result can be verified.
+        # Переводим в ON_CHECK, чтобы можно было проверить результат.
         req.status = Request.Status.ON_CHECK
         req.save(update_fields=['after_photo', 'status', 'updated_at'])
-        out = verify_cleanup(req.before_photo.path, req.after_photo.path)
+        try:
+            out = verify_cleanup(req.before_photo.path, req.after_photo.path)
+        except Exception as exc:
+            logger.exception("AI verification failed for request %s", req.id)
+            out = AIVerifyOutput(is_clean=False, score=None, details={"error": str(exc)})
         vr, _ = VerificationResult.objects.update_or_create(
             request=req,
             defaults={
@@ -161,7 +200,7 @@ class RequestViewSet(ModelViewSet):
 
         return Response(
             {
-                'status': 'Photo uploaded, request sent for review',
+                'status': 'Фото загружено, заявка отправлена на проверку',
                 'verification': VerificationResultSerializer(vr).data,
             },
             status=status.HTTP_200_OK
@@ -183,7 +222,7 @@ class RequestViewSet(ModelViewSet):
 
     @action(detail=True, methods=['post'])
     def verify(self, request, pk=None):
-        # Verification can be triggered only by coordinator/admin.
+        # Проверку может запускать только координатор/админ.
         """
         Запуск ИИ-проверки результата уборки.
         По-хорошему это действие координатора (или сервиса), а не исполнителя.
@@ -246,7 +285,7 @@ class RequestViewSet(ModelViewSet):
 
     @action(detail=False, methods=['get'], permission_classes=[IsAuthenticated])
     def stats(self, request):
-        # Aggregate totals and average completion time (completed only).
+        # Считаем итоги и среднее время выполнения (только завершённые).
         qs = Request.objects.all()
         total = qs.count()
         by_status = list(qs.values("status").annotate(count=Count("id")).order_by("status"))

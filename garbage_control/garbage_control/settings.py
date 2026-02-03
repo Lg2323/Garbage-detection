@@ -147,6 +147,8 @@ AI_CONF_THRESHOLD = float(os.getenv("AI_CONF_THRESHOLD", "0.25"))
 AI_DEVICE = os.getenv("AI_DEVICE", "cpu")
 AI_MIN_REDUCTION = float(os.getenv("AI_MIN_REDUCTION", "0.8"))
 AI_MAX_AFTER = int(os.getenv("AI_MAX_AFTER", "0"))
+AI_ON_BEFORE_FOUND_STATUS = os.getenv("AI_ON_BEFORE_FOUND_STATUS", "VERIFIED")
+AI_ON_BEFORE_NOT_FOUND_STATUS = os.getenv("AI_ON_BEFORE_NOT_FOUND_STATUS", "CREATED")
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/6.0/howto/static-files/
 

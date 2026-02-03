@@ -106,24 +106,6 @@ export default function CoordRequestDetail() {
                 Назначить
               </button>
             </div>
-            <div className="text-muted mt-2" style={{ fontSize: 12 }}>
-              {verification ? (
-                <div className="d-grid gap-1">
-                  <div><b>??:</b> {verification.is_clean ? "?????" : "?? ?????"}</div>
-                  {reductionPct !== null && (
-                    <div><b>????????:</b> {reductionPct}%</div>
-                  )}
-                  {typeof verificationDetails.before_count === "number" && (
-                    <div><b>??:</b> {verificationDetails.before_count}</div>
-                  )}
-                  {typeof verificationDetails.after_count === "number" && (
-                    <div><b>?????:</b> {verificationDetails.after_count}</div>
-                  )}
-                </div>
-              ) : (
-                <>??-???????? ??? ?? ?????? ??????</>
-              )}
-            </div>
           </div>
         </div>
       </div>
@@ -146,6 +128,37 @@ export default function CoordRequestDetail() {
               <img src={afterUrl} alt="after" className="img-fluid rounded" />
             ) : (
               <div className="text-muted">Нет фото</div>
+            )}
+          </div>
+        </div>
+      </div>
+      <div className="row g-3">
+        <div className="col-12">
+          <div className="card p-3 h-100">
+            <div className="fw-semibold mb-2">AI Result</div>
+            {verification ? (
+              <div className="d-grid gap-1">
+                <div><b>Status:</b> {verification.is_clean ? "Clean" : "Not clean"}</div>
+                {reductionPct !== null && (
+                  <div><b>Reduction:</b> {reductionPct}%</div>
+                )}
+                {typeof verificationDetails.before_count === "number" && (
+                  <div><b>Before:</b> {verificationDetails.before_count}</div>
+                )}
+                {typeof verificationDetails.after_count === "number" && (
+                  <div><b>After:</b> {verificationDetails.after_count}</div>
+                )}
+                {verificationDetails.error && (
+                  <div className="text-danger"><b>AI Error:</b> {String(verificationDetails.error)}</div>
+                )}
+                {verification.created_at && (
+                  <div className="text-muted" style={{ fontSize: 12 }}>
+                    Checked: {new Date(verification.created_at).toLocaleString()}
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="text-muted">AI check has not run yet</div>
             )}
           </div>
         </div>

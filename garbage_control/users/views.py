@@ -41,10 +41,10 @@ class RegisterView(generics.CreateAPIView):
 
 REFRESH_COOKIE_NAME = "refresh_token"
 
-# Store refresh token in an httpOnly cookie for web clients.
+# Храним refresh-токен в httpOnly-cookie для веб-клиента.
 
 def _set_refresh_cookie(response: Response, refresh: str):
-    # Keep refresh token out of JS-accessible storage.
+    # Не даём доступ к refresh-токену из JS.
     response.set_cookie(
         REFRESH_COOKIE_NAME,
         refresh,
@@ -56,7 +56,7 @@ def _set_refresh_cookie(response: Response, refresh: str):
     )
 
 def _delete_refresh_cookie(response: Response):
-    # Remove refresh cookie on logout.
+    # Удаляем refresh-cookie при выходе.
     response.delete_cookie(REFRESH_COOKIE_NAME, path="/api/auth/")
 
 class CookieTokenObtainPairView(TokenObtainPairView):
@@ -78,7 +78,7 @@ class CookieTokenRefreshView(TokenRefreshView):
     permission_classes = [permissions.AllowAny]
 
     def post(self, request, *args, **kwargs):
-        # Read refresh token from cookie instead of request body.
+        # Берём refresh-токен из cookie, а не из тела запроса.
         refresh = request.COOKIES.get(REFRESH_COOKIE_NAME)
         if not refresh:
             return Response({"detail": "No refresh cookie"}, status=status.HTTP_401_UNAUTHORIZED)
@@ -98,7 +98,7 @@ class CookieTokenRefreshView(TokenRefreshView):
 
 class LogoutView(APIView):
     def post(self, request):
-        # Best-effort blacklist to invalidate refresh token.
+        # Пытаемся заблокировать refresh-токен (best-effort).
         # Опционально: заблэклистить refresh (если есть)
         refresh = request.COOKIES.get(REFRESH_COOKIE_NAME)
         if refresh:
@@ -126,7 +126,7 @@ class PasswordResetRequestView(APIView):
     permission_classes = [permissions.AllowAny]
 
     def post(self, request):
-        # Always respond 200 to avoid leaking user existence.
+        # Всегда отвечаем 200, чтобы не раскрывать наличие пользователя.
         serializer = PasswordResetRequestSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         email = serializer.validated_data["email"]
@@ -145,7 +145,7 @@ class PasswordResetRequestView(APIView):
                 fail_silently=True,
             )
 
-        # Always return success to avoid leaking user existence
+        # Всегда возвращаем успех, чтобы не раскрывать наличие пользователя.
         return Response({"detail": "If the account exists, a reset email was sent."}, status=status.HTTP_200_OK)
 
 
@@ -153,7 +153,7 @@ class PasswordResetConfirmView(APIView):
     permission_classes = [permissions.AllowAny]
 
     def post(self, request):
-        # Validate token and set new password atomically.
+        # Проверяем токен и обновляем пароль.
         serializer = PasswordResetConfirmSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         uid = serializer.validated_data["uid"]

@@ -155,3 +155,35 @@ def verify_cleanup(before_path: str, after_path: str) -> AIVerifyOutput:
     }
 
     return AIVerifyOutput(is_clean=is_clean, score=reduction, details=details)
+
+
+def detect_garbage_before(before_path: str) -> AIVerifyOutput:
+    model = _load_model()
+    class_ids = _resolve_class_ids(model)
+    conf_threshold = float(getattr(settings, "AI_CONF_THRESHOLD", 0.25))
+    device = getattr(settings, "AI_DEVICE", None)
+
+    predict_kwargs: dict[str, Any] = {
+        "conf": conf_threshold,
+        "verbose": False,
+        "save": False,
+    }
+    if device:
+        predict_kwargs["device"] = device
+    if class_ids:
+        predict_kwargs["classes"] = class_ids
+
+    before_results = model.predict(source=str(before_path), **predict_kwargs)
+    before_count, before_by_class = _count_detections(before_results, class_ids, conf_threshold)
+
+    details = {
+        "stage": "before",
+        "before_count": before_count,
+        "before_by_class": before_by_class,
+        "class_filter": class_ids,
+        "conf_threshold": conf_threshold,
+        "model_path": str(_get_model_path()),
+    }
+
+    has_garbage = before_count > 0
+    return AIVerifyOutput(is_clean=not has_garbage, score=None, details=details)
