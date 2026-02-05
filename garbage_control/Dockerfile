@@ -6,23 +6,19 @@ ENV PIP_DEFAULT_TIMEOUT=120
 ENV PIP_DISABLE_PIP_VERSION_CHECK=1
 ENV PIP_EXTRA_INDEX_URL=https://download.pytorch.org/whl/cpu
 
+WORKDIR /app
+
+COPY requirements.txt /app/requirements.txt
 RUN apt-get update -o Acquire::Retries=5 \
     && apt-get install -y --no-install-recommends \
     gdal-bin libgdal-dev \
     libgeos-dev \
     gcc \
-    libgl1 \
-    libglib2.0-0 \
-    libsm6 \
-    libxext6 \
-    libxrender1 \
-    libxcb1 \
+    && pip install --no-cache-dir --retries 10 --timeout 120 -r /app/requirements.txt \
+    && pip uninstall -y opencv-python \
+    && pip install --no-cache-dir opencv-python-headless \
+    && apt-get purge -y --auto-remove gcc \
     && rm -rf /var/lib/apt/lists/*
-
-WORKDIR /app
-
-COPY requirements.txt /app/requirements.txt
-RUN pip install --no-cache-dir --retries 10 --timeout 120 -r /app/requirements.txt
 
 COPY . /app
 

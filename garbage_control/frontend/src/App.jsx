@@ -21,6 +21,7 @@ import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminUsers from "./pages/admin/AdminUsers";
 import AdminRequests from "./pages/admin/AdminRequests";
 import AdminLayout from "./pages/admin/AdminLayout";
+import WorkerRequests from "./pages/worker/WorkerRequests";
 
 import { bootstrapAuth, logoutUser, getMe } from "./api/auth";
 
@@ -99,6 +100,16 @@ export default function App() {
           element={
             <RoleGuard authed={authed} role={me?.role} allow={["COORDINATOR", "ADMIN"]}>
               <RequestDetail />
+            </RoleGuard>
+          }
+        />
+
+        {/* worker */}
+        <Route
+          path="/worker/requests"
+          element={
+            <RoleGuard authed={authed} role={me?.role} allow={["WORKER", "ADMIN"]}>
+              <WorkerRequests />
             </RoleGuard>
           }
         />

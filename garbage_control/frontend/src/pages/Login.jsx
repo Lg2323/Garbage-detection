@@ -13,10 +13,16 @@ export default function Login({ onDone }) {
     e?.preventDefault();
     setMsg(null);
     setBusy(true);
+    console.info("[AUTH] login start", { username });
     try {
       await loginUser({ username, password });
+      console.info("[AUTH] login success", { username });
       onDone?.();
     } catch (err) {
+      console.error("[AUTH] login failed", {
+        username,
+        error: err.response?.data ?? err.message,
+      });
       setMsg({ type: "danger", text: "Ошибка: " + (err.response?.data ? JSON.stringify(err.response.data) : err.message) });
     } finally {
       setBusy(false);

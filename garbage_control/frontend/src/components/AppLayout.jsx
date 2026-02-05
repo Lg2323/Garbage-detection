@@ -4,6 +4,7 @@ import logo from "../assets/logo.png";
 export default function AppLayout({ authed, role, onLogout, pageKey, children }) {
   const isCoord = role === "COORDINATOR" || role === "ADMIN";
   const isAdmin = role === "ADMIN";
+  const isWorker = role === "WORKER";
 
 
   return (
@@ -49,6 +50,10 @@ export default function AppLayout({ authed, role, onLogout, pageKey, children })
                         <Link className="gc-menu__item" to="/coord/requests">Панель координатора</Link>
                         <Link className="gc-menu__item" to="/coord/map">Карта заявок</Link>
                       </>
+                    )}
+
+                    {(isWorker || isAdmin) && (
+                      <Link className="gc-menu__item" to="/worker/requests">Панель исполнителя</Link>
                     )}
 
                     {isAdmin && (

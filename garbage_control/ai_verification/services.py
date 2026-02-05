@@ -2,8 +2,12 @@ from dataclasses import dataclass
 from functools import lru_cache
 from pathlib import Path
 from typing import Any, Iterable
+import logging
 
 from django.conf import settings
+
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -143,6 +147,21 @@ def verify_cleanup(before_path: str, after_path: str) -> AIVerifyOutput:
 
     is_clean = (after_count <= max_after) or (reduction >= min_reduction)
 
+    logger.info(
+        "AI cleanup verification: before=%s after=%s reduction=%.3f is_clean=%s classes=%s conf=%.3f",
+        before_count,
+        after_count,
+        reduction,
+        is_clean,
+        class_ids,
+        conf_threshold,
+    )
+    logger.debug(
+        "AI cleanup per-class counts: before=%s after=%s",
+        before_by_class,
+        after_by_class,
+    )
+
     details = {
         "before_count": before_count,
         "after_count": after_count,
@@ -175,6 +194,15 @@ def detect_garbage_before(before_path: str) -> AIVerifyOutput:
 
     before_results = model.predict(source=str(before_path), **predict_kwargs)
     before_count, before_by_class = _count_detections(before_results, class_ids, conf_threshold)
+
+    logger.info(
+        "AI pre-check: before=%s has_garbage=%s classes=%s conf=%.3f",
+        before_count,
+        before_count > 0,
+        class_ids,
+        conf_threshold,
+    )
+    logger.debug("AI pre-check per-class counts: %s", before_by_class)
 
     details = {
         "stage": "before",

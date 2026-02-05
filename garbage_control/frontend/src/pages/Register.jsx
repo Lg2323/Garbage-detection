@@ -14,11 +14,19 @@ export default function Register({ onDone }) {
     e?.preventDefault();
     setMsg(null);
     setBusy(true);
+    console.info("[AUTH] register start", { username, email, phone });
     try {
       await registerUser({ username, email, phone, password });
+      console.info("[AUTH] register success", { username, email });
       await loginUser({ username, password });
+      console.info("[AUTH] login after register success", { username });
       onDone?.();
     } catch (err) {
+      console.error("[AUTH] register failed", {
+        username,
+        email,
+        error: err.response?.data ?? err.message,
+      });
       setMsg({ type: "danger", text: "Ошибка: " + (err.response?.data ? JSON.stringify(err.response.data) : err.message) });
     } finally {
       setBusy(false);

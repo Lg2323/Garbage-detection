@@ -54,9 +54,11 @@ export default function RequestsList() {
     if (!navigator.geolocation) return setFormMsg({ type: "danger", text: "Геолокация не поддерживается" });
 
     // Coordinates are required for the PointField on the backend.
+    console.info("[REQUEST] create start", { titleLength: title.trim().length, hasPhoto: !!photo });
     setBusy(true);
     navigator.geolocation.getCurrentPosition(
       async (pos) => {
+        console.info("[REQUEST] geolocation success");
         const form = new FormData();
         form.append("title", title);
         form.append("latitude", pos.coords.latitude);
@@ -64,18 +66,21 @@ export default function RequestsList() {
         form.append("before_photo", photo);
 
         try {
-          await http.post("/api/requests/", form, { headers: { "Content-Type": "multipart/form-data" } });
+          const res = await http.post("/api/requests/", form, { headers: { "Content-Type": "multipart/form-data" } });
+          console.info("[REQUEST] create success", { id: res?.data?.id });
           setFormMsg({ type: "success", text: "Заявка создана" });
           setTitle("");
           setPhoto(null);
           await loadRequests();
         } catch (e) {
+          console.error("[REQUEST] create failed", { error: e.response?.data ?? e.message });
           setFormMsg({ type: "danger", text: "Ошибка отправки: " + (e.response?.data ? JSON.stringify(e.response.data) : e.message) });
         } finally {
           setBusy(false);
         }
       },
       (err) => {
+        console.error("[REQUEST] geolocation failed", { code: err.code, message: err.message });
         setBusy(false);
         setFormMsg({ type: "danger", text: "Геолокация недоступна: " + err.message });
       },
@@ -100,6 +105,7 @@ export default function RequestsList() {
       <RequestCreateModal
         open={open}
         title={title}
+        photo={photo}
         busy={busy}
         message={formMsg}
         onClose={() => setOpen(false)}

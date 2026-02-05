@@ -35,3 +35,17 @@ export async function assignWorker(id, worker_id) {
   const res = await http.post(`/api/requests/${id}/assign_worker/`, { worker_id });
   return res.data;
 }
+
+export async function takeInWork(id) {
+  const res = await http.post(`/api/requests/${id}/take_in_work/`);
+  return res.data;
+}
+
+export async function uploadAfterPhoto(id, afterPhoto) {
+  const form = new FormData();
+  form.append("after_photo", afterPhoto);
+  const res = await http.post(`/api/requests/${id}/upload_after_photo/`, form, {
+    headers: { "Content-Type": "multipart/form-data" },
+  });
+  return res.data;
+}

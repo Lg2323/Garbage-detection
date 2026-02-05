@@ -1,8 +1,10 @@
 import Notice from "../Notice";
+import FileDropzone from "../FileDropzone";
 
 export default function RequestCreateModal({
   open,
   title,
+  photo,
   busy,
   message,
   onClose,
@@ -37,12 +39,10 @@ export default function RequestCreateModal({
         </div>
 
         <div className="mb-3">
-          <label className="form-label gc-muted">Фото</label>
-          <input
-            className="form-control"
-            type="file"
-            accept="image/*"
-            onChange={(e) => onPhotoChange(e.target.files?.[0] ?? null)}
+          <FileDropzone
+            label="Фото"
+            file={photo}
+            onChange={onPhotoChange}
           />
         </div>
 

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import http from "../api/http";
 import Notice from "../components/Notice";
+import FileDropzone from "../components/FileDropzone";
 
 export default function CreateRequest() {
   const [title, setTitle] = useState("");
@@ -15,10 +16,12 @@ export default function CreateRequest() {
     if (!photo) return setMsg({ type: "warning", text: "Прикрепите фото" });
     if (!navigator.geolocation) return setMsg({ type: "danger", text: "Геолокация не поддерживается" });
 
+    console.info("[REQUEST] create start", { titleLength: title.trim().length, hasPhoto: !!photo });
     setBusy(true);
 
     navigator.geolocation.getCurrentPosition(
       async (pos) => {
+        console.info("[REQUEST] geolocation success");
         const form = new FormData();
         form.append("title", title);
         form.append("latitude", pos.coords.latitude);
@@ -26,17 +29,20 @@ export default function CreateRequest() {
         form.append("before_photo", photo);
 
         try {
-          await http.post("/api/requests/", form, { headers: { "Content-Type": "multipart/form-data" } });
+          const res = await http.post("/api/requests/", form, { headers: { "Content-Type": "multipart/form-data" } });
+          console.info("[REQUEST] create success", { id: res?.data?.id });
           setMsg({ type: "success", text: "Заявка создана" });
           setTitle("");
           setPhoto(null);
         } catch (e) {
+          console.error("[REQUEST] create failed", { error: e.response?.data ?? e.message });
           setMsg({ type: "danger", text: "Ошибка отправки: " + (e.response?.data ? JSON.stringify(e.response.data) : e.message) });
         } finally {
           setBusy(false);
         }
       },
       (err) => {
+        console.error("[REQUEST] geolocation failed", { code: err.code, message: err.message });
         setBusy(false);
         setMsg({ type: "danger", text: "Геолокация недоступна: " + err.message });
       },
@@ -64,8 +70,11 @@ export default function CreateRequest() {
       </div>
 
       <div className="mb-3">
-        <label className="form-label gc-muted">Фото</label>
-        <input className="form-control" type="file" accept="image/*" onChange={(e)=>setPhoto(e.target.files?.[0] ?? null)} />
+        <FileDropzone
+          label="Фото"
+          file={photo}
+          onChange={setPhoto}
+        />
       </div>
 
       <button className="btn btn-primary" onClick={submit} disabled={busy}>
