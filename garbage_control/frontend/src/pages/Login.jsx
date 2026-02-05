@@ -17,7 +17,7 @@ export default function Login({ onDone }) {
       await loginUser({ username, password });
       onDone?.();
     } catch (err) {
-      setMsg({ type: "danger", text: "??????: " + (err.response?.data ? JSON.stringify(err.response.data) : err.message) });
+      setMsg({ type: "danger", text: "Ошибка: " + (err.response?.data ? JSON.stringify(err.response.data) : err.message) });
     } finally {
       setBusy(false);
     }
@@ -26,7 +26,7 @@ export default function Login({ onDone }) {
   return (
     <div className="gc-card gc-anim gc-anim--up p-4">
       <div className="d-flex align-items-center justify-content-between mb-3">
-        <h4 className="m-0">????</h4>
+        <h4 className="m-0">Вход</h4>
       </div>
 
       <Notice type={msg?.type} text={msg?.text} onClose={() => setMsg(null)} />
@@ -38,22 +38,22 @@ export default function Login({ onDone }) {
             className="form-control gc-input"
             value={username}
             onChange={(e) => setUsername(e.target.value)}
-            placeholder="????????: testuser"
+            placeholder="например: testuser"
           />
         </div>
         <div>
-          <label className="form-label gc-muted">??????</label>
+          <label className="form-label gc-muted">Пароль</label>
           <input
             className="form-control gc-input"
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            placeholder="????????"
+            placeholder="••••••••"
           />
         </div>
 
         <button className="btn btn-primary gc-btn" type="submit" disabled={busy}>
-          {busy ? "?????..." : "?????"}
+          {busy ? "Вхожу..." : "Войти"}
         </button>
         <Link className="gc-link-muted" to="/forgot-password">Forgot password?</Link>
       </form>

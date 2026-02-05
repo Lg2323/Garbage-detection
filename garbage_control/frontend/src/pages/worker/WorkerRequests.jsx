@@ -95,7 +95,14 @@ export default function WorkerRequests() {
             {items.map((r) => (
               <tr key={r.id}>
                 <td className="fw-semibold">#{r.id}</td>
-                <td>{r.title}</td>
+                <td>
+                  <div className="fw-semibold">{r.title}</div>
+                  {r.last_rework_comment && (
+                    <div className="text-danger" style={{ fontSize: 12 }}>
+                      Доработка: {r.last_rework_comment}
+                    </div>
+                  )}
+                </td>
                 <td>
                   <span className={statusClass(r.status)}>{statusLabel(r.status)}</span>
                 </td>

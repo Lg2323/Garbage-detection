@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
 import http from "../../api/http";
 import { assignWorker, getWorkers } from "../../api/coord";
+import { returnToWork } from "../../api/requests";
 import { statusClass, statusLabel } from "../../ui/status";
 import Notice from "../../components/Notice";
 
@@ -12,6 +13,8 @@ export default function CoordRequestDetail() {
   const [workerId, setWorkerId] = useState("");
   const [msg, setMsg] = useState("");
   const [busy, setBusy] = useState(false);
+  const [returnComment, setReturnComment] = useState("");
+  const [reassignWorkerId, setReassignWorkerId] = useState("");
 
   const load = async () => {
     setMsg("");
@@ -35,6 +38,29 @@ export default function CoordRequestDetail() {
       await assignWorker(id, Number(workerId));
       await load();
       setMsg("Исполнитель назначен");
+    } catch (e) {
+      setMsg("Ошибка: " + (e.response?.data ? JSON.stringify(e.response.data) : e.message));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const doReturnToWork = async () => {
+    if (!returnComment.trim()) {
+      setMsg("Ошибка: укажите комментарий");
+      return;
+    }
+    setMsg("");
+    setBusy(true);
+    try {
+      await returnToWork(id, {
+        comment: returnComment.trim(),
+        reassign_worker_id: reassignWorkerId ? Number(reassignWorkerId) : null,
+      });
+      setReturnComment("");
+      setReassignWorkerId("");
+      await load();
+      setMsg("Заявка возвращена на доработку");
     } catch (e) {
       setMsg("Ошибка: " + (e.response?.data ? JSON.stringify(e.response.data) : e.message));
     } finally {
@@ -159,6 +185,66 @@ export default function CoordRequestDetail() {
               </div>
             ) : (
               <div className="text-muted">AI check has not run yet</div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      <div className="row g-3">
+        <div className="col-12">
+          <div className="card p-3 h-100">
+            <div className="fw-semibold mb-2">Возврат на доработку</div>
+            <div className="d-grid gap-2">
+              <textarea
+                className="form-control"
+                rows={3}
+                value={returnComment}
+                onChange={(e) => setReturnComment(e.target.value)}
+                placeholder="Опишите, что нужно исправить"
+              />
+              <select
+                className="form-select"
+                value={reassignWorkerId}
+                onChange={(e) => setReassignWorkerId(e.target.value)}
+              >
+                <option value="">Оставить текущего исполнителя</option>
+                {workers.map((w) => (
+                  <option key={w.id} value={w.id}>
+                    #{w.id} {w.username} ({w.email})
+                  </option>
+                ))}
+              </select>
+              <button className="btn btn-outline-danger" onClick={doReturnToWork} disabled={busy}>
+                Вернуть на доработку
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="row g-3">
+        <div className="col-12">
+          <div className="card p-3 h-100">
+            <div className="fw-semibold mb-2">История доработок</div>
+            {req.rework_events?.length ? (
+              <div className="d-grid gap-2">
+                {req.rework_events.map((ev) => (
+                  <div key={ev.id} className="border rounded p-2">
+                    <div className="fw-semibold">{new Date(ev.created_at).toLocaleString()}</div>
+                    <div className="text-muted" style={{ fontSize: 12 }}>
+                      {ev.created_by_username || "—"} • Статус: {statusLabel(ev.previous_status) || ev.previous_status}
+                    </div>
+                    <div>Комментарий: {ev.comment}</div>
+                    {(ev.previous_worker_username || ev.new_worker_username) && (
+                      <div className="text-muted" style={{ fontSize: 12 }}>
+                        Исполнитель: {ev.previous_worker_username || "—"} → {ev.new_worker_username || "—"}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-muted">Нет возвратов на доработку</div>
             )}
           </div>
         </div>

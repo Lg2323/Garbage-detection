@@ -50,3 +50,8 @@ export async function uploadAfterPhoto(id, afterPhoto) {
   });
   return res.data;
 }
+
+export async function returnToWork(id, payload) {
+  const res = await http.post(`/api/requests/${id}/return_to_work/`, payload);
+  return res.data;
+}
