@@ -9,7 +9,7 @@ User = get_user_model()
 class MeSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ("id", "username", "email", "role", "phone")
+        fields = ("id", "username", "email", "role", "phone", "city")
 
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
@@ -19,7 +19,8 @@ class UserSerializer(serializers.ModelSerializer):
             'username',
             'email',
             'role',
-            'phone'
+            'phone',
+            'city',
         )
 
 class RegisterSerializer(serializers.ModelSerializer):
@@ -27,7 +28,7 @@ class RegisterSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ("id", "username", "email", "phone", "password")
+        fields = ("id", "username", "email", "phone", "city", "password")
 
     def create(self, validated_data):
         password = validated_data.pop("password")
@@ -40,7 +41,7 @@ class RegisterSerializer(serializers.ModelSerializer):
 class AdminUserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ("id", "username", "email", "role", "phone", "is_active", "last_login", "date_joined")
+        fields = ("id", "username", "email", "role", "phone", "city", "is_active", "last_login", "date_joined")
 
 
 class AdminUserCreateSerializer(serializers.ModelSerializer):
@@ -48,7 +49,7 @@ class AdminUserCreateSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ("id", "username", "email", "phone", "role", "is_active", "password")
+        fields = ("id", "username", "email", "phone", "city", "role", "is_active", "password")
 
     def create(self, validated_data):
         password = validated_data.pop("password")
@@ -63,7 +64,7 @@ class AdminUserUpdateSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ("email", "phone", "role", "is_active", "password")
+        fields = ("email", "phone", "city", "role", "is_active", "password")
 
     def update(self, instance, validated_data):
         password = validated_data.pop("password", None)

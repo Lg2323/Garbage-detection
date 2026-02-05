@@ -6,6 +6,7 @@ import Pagination from "../components/Pagination";
 import RequestsHeader from "../components/requests/RequestsHeader";
 import RequestsTable from "../components/requests/RequestsTable";
 import RequestCreateModal from "../components/requests/RequestCreateModal";
+import { reverseGeocodeCity } from "../utils/geocoding";
 
 const PAGE_SIZE = 8;
 
@@ -14,10 +15,41 @@ export default function RequestsList() {
   const [msg, setMsg] = useState("");
   const [open, setOpen] = useState(false);
   const [title, setTitle] = useState("");
+  const [city, setCity] = useState("");
   const [photo, setPhoto] = useState(null);
   const [busy, setBusy] = useState(false);
+  const [detectingCity, setDetectingCity] = useState(false);
   const [formMsg, setFormMsg] = useState(null);
   const [page, setPage] = useState(1);
+
+  const detectCity = () => {
+    if (!navigator.geolocation) {
+      setFormMsg({ type: "warning", text: "Геолокация не поддерживается браузером" });
+      return;
+    }
+    setDetectingCity(true);
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        try {
+          const cityName = await reverseGeocodeCity(pos.coords.latitude, pos.coords.longitude);
+          if (cityName) {
+            setCity(cityName);
+          } else {
+            setFormMsg({ type: "warning", text: "Не удалось определить город. Введите вручную." });
+          }
+        } catch {
+          setFormMsg({ type: "warning", text: "Не удалось определить город. Введите вручную." });
+        } finally {
+          setDetectingCity(false);
+        }
+      },
+      () => {
+        setDetectingCity(false);
+        setFormMsg({ type: "warning", text: "Нет доступа к геолокации. Введите город вручную." });
+      },
+      { enableHighAccuracy: true, timeout: 8000 }
+    );
+  };
 
   const loadRequests = async () => {
     try {
@@ -60,9 +92,18 @@ export default function RequestsList() {
       async (pos) => {
         console.info("[REQUEST] geolocation success");
         const form = new FormData();
+        let cityValue = city.trim();
+        if (!cityValue) {
+          try {
+            cityValue = await reverseGeocodeCity(pos.coords.latitude, pos.coords.longitude);
+          } catch {
+            cityValue = "";
+          }
+        }
         form.append("title", title);
         form.append("latitude", pos.coords.latitude);
         form.append("longitude", pos.coords.longitude);
+        form.append("city", cityValue);
         form.append("before_photo", photo);
 
         try {
@@ -70,6 +111,7 @@ export default function RequestsList() {
           console.info("[REQUEST] create success", { id: res?.data?.id });
           setFormMsg({ type: "success", text: "Заявка создана" });
           setTitle("");
+          setCity("");
           setPhoto(null);
           await loadRequests();
         } catch (e) {
@@ -105,12 +147,16 @@ export default function RequestsList() {
       <RequestCreateModal
         open={open}
         title={title}
+        city={city}
         photo={photo}
         busy={busy}
+        detectingCity={detectingCity}
         message={formMsg}
         onClose={() => setOpen(false)}
         onMessageClose={() => setFormMsg(null)}
         onTitleChange={setTitle}
+        onCityChange={setCity}
+        onDetectCity={detectCity}
         onPhotoChange={setPhoto}
         onSubmit={submit}
       />

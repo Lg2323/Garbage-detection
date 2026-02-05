@@ -14,6 +14,7 @@ class Request(models.Model):
     title = models.CharField(max_length=255, verbose_name='Описание')
 
     location = models.PointField(geography=True, verbose_name='Геопозиция')
+    city = models.CharField(max_length=120, blank=True, default="")
 
     status = models.CharField(max_length=20, choices=Status.choices, default=Status.CREATED)
 

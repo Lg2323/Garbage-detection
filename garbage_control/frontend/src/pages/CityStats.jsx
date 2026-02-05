@@ -9,12 +9,13 @@ export default function CityStats() {
   const [data, setData] = useState(null);
   const [msg, setMsg] = useState("");
   const [loading, setLoading] = useState(false);
+  const [city, setCity] = useState("");
 
-  const load = async () => {
+  const load = async (cityValue = city) => {
     setMsg("");
     setLoading(true);
     try {
-      const res = await getCityStats();
+      const res = await getCityStats(cityValue || undefined);
       setData(res);
     } catch (e) {
       setMsg("Ошибка: " + (e.response?.data ? JSON.stringify(e.response.data) : e.message));
@@ -24,10 +25,11 @@ export default function CityStats() {
   };
 
   useEffect(() => {
-    load();
-  }, []);
+    load(city);
+  }, [city]);
 
   const byStatus = useMemo(() => data?.by_status ?? [], [data]);
+  const cities = useMemo(() => data?.available_cities ?? [], [data]);
 
   return (
     <div className="gc-card gc-card--soft gc-anim gc-anim--up p-4">
@@ -36,9 +38,20 @@ export default function CityStats() {
           <h4 className="mb-1">Статистика города</h4>
           <div className="gc-muted">Общая картина по заявкам и скорости их выполнения</div>
         </div>
-        <button className="btn btn-outline-secondary btn-sm" onClick={load} disabled={loading}>
-          Обновить
-        </button>
+        <div className="d-flex gap-2 align-items-end">
+          <div>
+            <label className="form-label gc-muted mb-1">Город</label>
+            <select className="form-select form-select-sm" value={city} onChange={(e) => setCity(e.target.value)}>
+              <option value="">Все города</option>
+              {cities.map((c) => (
+                <option key={c} value={c}>{c}</option>
+              ))}
+            </select>
+          </div>
+          <button className="btn btn-outline-secondary btn-sm" onClick={() => load(city)} disabled={loading}>
+            Обновить
+          </button>
+        </div>
       </div>
 
       {msg && <Notice type="danger" text={msg} onClose={() => setMsg("")} />}

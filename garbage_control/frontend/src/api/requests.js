@@ -10,8 +10,9 @@ export async function getCompletedRequests() {
   return res.data;
 }
 
-export async function getCityStats() {
-  const res = await http.get("/api/requests/stats/");
+export async function getCityStats(city) {
+  const params = city ? { city } : undefined;
+  const res = await http.get("/api/requests/stats/", { params });
   return res.data;
 }
 

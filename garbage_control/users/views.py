@@ -31,6 +31,7 @@ class MeView(APIView):
             "username": u.username,
             "email": u.email,
             "role": u.role,
+            "city": u.city,
         })
 
 
@@ -119,7 +120,7 @@ class WorkersListView(ListAPIView):
     def get_queryset(self):
         if self.request.user.role not in ("COORDINATOR", "ADMIN"):
             return User.objects.none()
-        return User.objects.filter(role="WORKER").only("id", "username", "email")
+        return User.objects.filter(role="WORKER").only("id", "username", "email", "role", "phone", "city")
 
 
 class PasswordResetRequestView(APIView):

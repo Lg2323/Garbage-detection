@@ -21,6 +21,12 @@ class User(AbstractUser):
         null=True
     )
 
+    city = models.CharField(
+        max_length=120,
+        blank=True,
+        default=""
+    )
+
     def __str__(self):
         return f"{self.username} ({self.role})"
 

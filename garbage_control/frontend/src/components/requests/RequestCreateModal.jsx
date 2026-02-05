@@ -4,12 +4,16 @@ import FileDropzone from "../FileDropzone";
 export default function RequestCreateModal({
   open,
   title,
+  city,
   photo,
   busy,
+  detectingCity,
   message,
   onClose,
   onMessageClose,
   onTitleChange,
+  onCityChange,
+  onDetectCity,
   onPhotoChange,
   onSubmit,
 }) {
@@ -36,6 +40,21 @@ export default function RequestCreateModal({
             value={title}
             onChange={(e) => onTitleChange(e.target.value)}
           />
+        </div>
+
+        <div className="mb-3">
+          <label className="form-label gc-muted">Город</label>
+          <div className="d-flex gap-2">
+            <input
+              className="form-control"
+              placeholder="Например: Москва"
+              value={city}
+              onChange={(e) => onCityChange(e.target.value)}
+            />
+            <button className="btn btn-outline-secondary" type="button" onClick={onDetectCity} disabled={detectingCity}>
+              {detectingCity ? "..." : "Определить"}
+            </button>
+          </div>
         </div>
 
         <div className="mb-3">

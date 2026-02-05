@@ -2,12 +2,44 @@ import { useState } from "react";
 import http from "../api/http";
 import Notice from "../components/Notice";
 import FileDropzone from "../components/FileDropzone";
+import { reverseGeocodeCity } from "../utils/geocoding";
 
 export default function CreateRequest() {
   const [title, setTitle] = useState("");
+  const [city, setCity] = useState("");
   const [photo, setPhoto] = useState(null);
   const [msg, setMsg] = useState(null);
   const [busy, setBusy] = useState(false);
+  const [detectingCity, setDetectingCity] = useState(false);
+
+  const detectCity = () => {
+    if (!navigator.geolocation) {
+      setMsg({ type: "warning", text: "Геолокация не поддерживается браузером" });
+      return;
+    }
+    setDetectingCity(true);
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        try {
+          const cityName = await reverseGeocodeCity(pos.coords.latitude, pos.coords.longitude);
+          if (cityName) {
+            setCity(cityName);
+          } else {
+            setMsg({ type: "warning", text: "Не удалось определить город. Введите вручную." });
+          }
+        } catch {
+          setMsg({ type: "warning", text: "Не удалось определить город. Введите вручную." });
+        } finally {
+          setDetectingCity(false);
+        }
+      },
+      () => {
+        setDetectingCity(false);
+        setMsg({ type: "warning", text: "Нет доступа к геолокации. Введите город вручную." });
+      },
+      { enableHighAccuracy: true, timeout: 8000 }
+    );
+  };
 
   const submit = async () => {
     setMsg(null);
@@ -23,9 +55,18 @@ export default function CreateRequest() {
       async (pos) => {
         console.info("[REQUEST] geolocation success");
         const form = new FormData();
+        let cityValue = city.trim();
+        if (!cityValue) {
+          try {
+            cityValue = await reverseGeocodeCity(pos.coords.latitude, pos.coords.longitude);
+          } catch {
+            cityValue = "";
+          }
+        }
         form.append("title", title);
         form.append("latitude", pos.coords.latitude);
         form.append("longitude", pos.coords.longitude);
+        form.append("city", cityValue);
         form.append("before_photo", photo);
 
         try {
@@ -67,6 +108,21 @@ export default function CreateRequest() {
           value={title}
           onChange={(e)=>setTitle(e.target.value)}
         />
+      </div>
+
+      <div className="mb-3">
+        <label className="form-label gc-muted">Город</label>
+        <div className="d-flex gap-2">
+          <input
+            className="form-control"
+            placeholder="Например: Москва"
+            value={city}
+            onChange={(e)=>setCity(e.target.value)}
+          />
+          <button className="btn btn-outline-secondary" type="button" onClick={detectCity} disabled={detectingCity}>
+            {detectingCity ? "..." : "Определить"}
+          </button>
+        </div>
       </div>
 
       <div className="mb-3">

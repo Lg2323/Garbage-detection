@@ -40,12 +40,16 @@ class RequestViewSet(ModelViewSet):
         # фильтры
         status_q = self.request.query_params.get("status")
         q = self.request.query_params.get("q")
+        city_q = (self.request.query_params.get("city") or "").strip()
 
         if status_q:
             qs = qs.filter(status=status_q)
 
         if q:
             qs = qs.filter(title__icontains=q)
+
+        if city_q:
+            qs = qs.filter(city__iexact=city_q)
 
         if user.role in ("COORDINATOR", "ADMIN"):
             return qs
@@ -286,7 +290,17 @@ class RequestViewSet(ModelViewSet):
     @action(detail=False, methods=['get'], permission_classes=[IsAuthenticated])
     def stats(self, request):
         # Считаем итоги и среднее время выполнения (только завершённые).
+        city_q = (request.query_params.get("city") or "").strip()
         qs = Request.objects.all()
+        if city_q:
+            qs = qs.filter(city__iexact=city_q)
+
+        available_cities = list(
+            Request.objects.exclude(city="")
+            .values_list("city", flat=True)
+            .distinct()
+            .order_by("city")
+        )
         total = qs.count()
         by_status = list(qs.values("status").annotate(count=Count("id")).order_by("status"))
 
@@ -300,6 +314,8 @@ class RequestViewSet(ModelViewSet):
 
         return Response(
             {
+                "city": city_q or None,
+                "available_cities": available_cities,
                 "total": total,
                 "by_status": by_status,
                 "completed": completed_qs.count(),
