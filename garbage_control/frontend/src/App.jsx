@@ -38,9 +38,11 @@ export default function App() {
         setAuthed(true);
         const m = await getMe();
         setMe(m);
+        console.info("[APP] session restored", { role: m?.role, username: m?.username });
       } catch {
         setAuthed(false);
         setMe(null);
+        console.info("[APP] guest mode");
       } finally {
         setLoading(false);
       }
@@ -48,9 +50,14 @@ export default function App() {
   }, []);
 
   const doLogout = async () => {
-    await logoutUser();
+    try {
+      await logoutUser();
+    } catch {
+      // token is already cleared in logoutUser finally block
+    }
     setAuthed(false);
     setMe(null);
+    console.info("[APP] logout completed");
   };
 
   if (loading) return <div className="container py-4">Загрузка...</div>;

@@ -2,7 +2,7 @@ from django.contrib.auth import get_user_model
 from django.conf import settings
 from django.db.models import Avg, Count, ExpressionWrapper, F, DurationField
 from rest_framework.viewsets import ModelViewSet
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework import status
@@ -17,6 +17,7 @@ import logging
 
 from ai_verification.services import verify_cleanup, detect_garbage_before, AIVerifyOutput
 from .models import Request,VerificationResult
+from .geocoding import detect_city_by_coordinates
 from .serializers import (
     RequestCreateSerializer,
     RequestListSerializer,
@@ -286,6 +287,19 @@ class RequestViewSet(ModelViewSet):
         qs = Request.objects.filter(status=Request.Status.COMPLETED).order_by("-updated_at")
         ser = RequestCompletedSerializer(qs, many=True, context={"request": request})
         return Response(ser.data)
+
+    @action(detail=False, methods=['get'], permission_classes=[AllowAny], url_path='detect-city')
+    def detect_city(self, request):
+        lat = request.query_params.get("lat")
+        lon = request.query_params.get("lon")
+        try:
+            lat_f = float(lat)
+            lon_f = float(lon)
+        except (TypeError, ValueError):
+            return Response({"error": "Invalid lat/lon"}, status=status.HTTP_400_BAD_REQUEST)
+
+        city = detect_city_by_coordinates(lat_f, lon_f)
+        return Response({"city": city}, status=status.HTTP_200_OK)
 
     @action(detail=False, methods=['get'], permission_classes=[IsAuthenticated])
     def stats(self, request):

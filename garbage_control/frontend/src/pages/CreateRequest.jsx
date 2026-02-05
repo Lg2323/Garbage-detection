@@ -4,6 +4,8 @@ import Notice from "../components/Notice";
 import FileDropzone from "../components/FileDropzone";
 import { reverseGeocodeCity } from "../utils/geocoding";
 
+const CITY_ACCURACY_LIMIT_METERS = 50000;
+
 export default function CreateRequest() {
   const [title, setTitle] = useState("");
   const [city, setCity] = useState("");
@@ -21,6 +23,10 @@ export default function CreateRequest() {
     navigator.geolocation.getCurrentPosition(
       async (pos) => {
         try {
+          const accuracy = Number(pos.coords.accuracy || 0);
+          if (accuracy > CITY_ACCURACY_LIMIT_METERS) {
+            setMsg({ type: "warning", text: "Геолокация неточная, пробую определить город по доступным данным." });
+          }
           const cityName = await reverseGeocodeCity(pos.coords.latitude, pos.coords.longitude);
           if (cityName) {
             setCity(cityName);
@@ -56,6 +62,10 @@ export default function CreateRequest() {
         console.info("[REQUEST] geolocation success");
         const form = new FormData();
         let cityValue = city.trim();
+        const accuracy = Number(pos.coords.accuracy || 0);
+        if (!cityValue && accuracy > CITY_ACCURACY_LIMIT_METERS) {
+          setMsg({ type: "warning", text: "Геолокация неточная. Если город определится неверно, исправьте его вручную." });
+        }
         if (!cityValue) {
           try {
             cityValue = await reverseGeocodeCity(pos.coords.latitude, pos.coords.longitude);

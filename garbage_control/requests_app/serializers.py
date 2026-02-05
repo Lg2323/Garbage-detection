@@ -17,11 +17,10 @@ class RequestCreateSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         lat = validated_data.pop("latitude")
         lon = validated_data.pop("longitude")
-        city = (validated_data.get("city") or "").strip()
-        if not city:
-            city = detect_city_by_coordinates(lat, lon)
-        validated_data["city"] = city
-        validated_data["location"] = Point(lon, lat)  # важно: lon, lat
+        provided_city = (validated_data.pop("city", "") or "").strip()
+        detected_city = detect_city_by_coordinates(lat, lon)
+        validated_data["city"] = detected_city or provided_city
+        validated_data["location"] = Point(lon, lat)
         return super().create(validated_data)
 
 

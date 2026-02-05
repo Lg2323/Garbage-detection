@@ -13,17 +13,11 @@ export default function Login({ onDone }) {
     e?.preventDefault();
     setMsg(null);
     setBusy(true);
-    console.info("[AUTH] login start", { username });
     try {
       await loginUser({ username, password });
-      console.info("[AUTH] login success", { username });
       onDone?.();
     } catch (err) {
-      console.error("[AUTH] login failed", {
-        username,
-        error: err.response?.data ?? err.message,
-      });
-      setMsg({ type: "danger", text: "Ошибка: " + (err.response?.data ? JSON.stringify(err.response.data) : err.message) });
+      setMsg({ type: "danger", text: "??????: " + (err.response?.data ? JSON.stringify(err.response.data) : err.message) });
     } finally {
       setBusy(false);
     }
@@ -32,7 +26,7 @@ export default function Login({ onDone }) {
   return (
     <div className="gc-card gc-anim gc-anim--up p-4">
       <div className="d-flex align-items-center justify-content-between mb-3">
-        <h4 className="m-0">Вход</h4>
+        <h4 className="m-0">????</h4>
       </div>
 
       <Notice type={msg?.type} text={msg?.text} onClose={() => setMsg(null)} />
@@ -44,22 +38,22 @@ export default function Login({ onDone }) {
             className="form-control gc-input"
             value={username}
             onChange={(e) => setUsername(e.target.value)}
-            placeholder="например: testuser"
+            placeholder="????????: testuser"
           />
         </div>
         <div>
-          <label className="form-label gc-muted">Пароль</label>
+          <label className="form-label gc-muted">??????</label>
           <input
             className="form-control gc-input"
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            placeholder="••••••••"
+            placeholder="????????"
           />
         </div>
 
         <button className="btn btn-primary gc-btn" type="submit" disabled={busy}>
-          {busy ? "Вхожу..." : "Войти"}
+          {busy ? "?????..." : "?????"}
         </button>
         <Link className="gc-link-muted" to="/forgot-password">Forgot password?</Link>
       </form>

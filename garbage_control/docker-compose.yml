@@ -34,6 +34,10 @@ services:
       EMAIL_HOST_PASSWORD: N9PixYSevoNYL0BndnrZ
       EMAIL_USE_TLS: "True"
       FRONTEND_BASE_URL: "http://localhost:3000"
+      YANDEX_GEOCODER_API_KEY: "78f20bd4-10d4-4100-9d65-5114f1733cfd"
+      AI_CONF_THRESHOLD: "0.5"
+      AI_MIN_REDUCTION: "0.8"
+      AI_MAX_AFTER: "0"
 
   frontend:
     image: node:20-alpine

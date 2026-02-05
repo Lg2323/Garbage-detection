@@ -9,6 +9,7 @@ import RequestCreateModal from "../components/requests/RequestCreateModal";
 import { reverseGeocodeCity } from "../utils/geocoding";
 
 const PAGE_SIZE = 8;
+const CITY_ACCURACY_LIMIT_METERS = 50000;
 
 export default function RequestsList() {
   const [items, setItems] = useState([]);
@@ -31,6 +32,10 @@ export default function RequestsList() {
     navigator.geolocation.getCurrentPosition(
       async (pos) => {
         try {
+          const accuracy = Number(pos.coords.accuracy || 0);
+          if (accuracy > CITY_ACCURACY_LIMIT_METERS) {
+            setFormMsg({ type: "warning", text: "Геолокация неточная, пробую определить город по доступным данным." });
+          }
           const cityName = await reverseGeocodeCity(pos.coords.latitude, pos.coords.longitude);
           if (cityName) {
             setCity(cityName);
@@ -93,6 +98,10 @@ export default function RequestsList() {
         console.info("[REQUEST] geolocation success");
         const form = new FormData();
         let cityValue = city.trim();
+        const accuracy = Number(pos.coords.accuracy || 0);
+        if (!cityValue && accuracy > CITY_ACCURACY_LIMIT_METERS) {
+          setFormMsg({ type: "warning", text: "Геолокация неточная. Если город определится неверно, исправьте его вручную." });
+        }
         if (!cityValue) {
           try {
             cityValue = await reverseGeocodeCity(pos.coords.latitude, pos.coords.longitude);

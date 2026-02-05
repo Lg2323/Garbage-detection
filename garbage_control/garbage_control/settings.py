@@ -149,6 +149,7 @@ AI_MIN_REDUCTION = float(os.getenv("AI_MIN_REDUCTION", "0.8"))
 AI_MAX_AFTER = int(os.getenv("AI_MAX_AFTER", "0"))
 AI_ON_BEFORE_FOUND_STATUS = os.getenv("AI_ON_BEFORE_FOUND_STATUS", "VERIFIED")
 AI_ON_BEFORE_NOT_FOUND_STATUS = os.getenv("AI_ON_BEFORE_NOT_FOUND_STATUS", "CREATED")
+YANDEX_GEOCODER_API_KEY = os.getenv("YANDEX_GEOCODER_API_KEY", "")
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/6.0/howto/static-files/
 
