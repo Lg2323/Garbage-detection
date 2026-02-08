@@ -3,11 +3,11 @@ import { ResponsivePie } from "@nivo/pie";
 import { statusLabel } from "../../ui/status";
 
 const STATUS_COLORS = {
-  CREATED: "#a855f7",
-  VERIFIED: "#7c3aed",
-  IN_PROGRESS: "#ec4899",
-  ON_CHECK: "#f472b6",
-  COMPLETED: "#8b5cf6",
+  CREATED: "#1f6b4a",
+  VERIFIED: "#1d5f5a",
+  IN_PROGRESS: "#2f6e3f",
+  ON_CHECK: "#6a7a1f",
+  COMPLETED: "#236b46",
 };
 
 export default function StatsPieChart({ items }) {
@@ -17,7 +17,7 @@ export default function StatsPieChart({ items }) {
         id: s.status,
         label: statusLabel(s.status),
         value: s.count || 0,
-        color: STATUS_COLORS[s.status] || "#c084fc",
+        color: STATUS_COLORS[s.status] || "#4f7d62",
       })),
     [items]
   );
