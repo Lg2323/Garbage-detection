@@ -9,7 +9,7 @@ import { getAllRequests } from "../../api/coord";
 import Notice from "../../components/Notice";
 import { statusLabel } from "../../ui/status";
 
-const STATUSES = ["", "CREATED", "VERIFIED", "IN_PROGRESS", "ON_CHECK", "COMPLETED"];
+const STATUSES = ["", "CREATED", "VERIFIED", "IN_PROGRESS", "ON_CHECK", "COMPLETED", "TRANSFERRED"];
 
 const markerIcon = new L.Icon({
   iconUrl: marker1x,

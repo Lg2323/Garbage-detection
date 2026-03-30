@@ -1,12 +1,13 @@
 import { useEffect, useMemo, useState } from "react";
-import { getRequests } from "../api/requests";
-import http from "../api/http";
+import { createRequest, getRequests } from "../api/requests";
 import Notice from "../components/Notice";
 import Pagination from "../components/Pagination";
+import RequestFiltersPanel from "../components/requests/RequestFiltersPanel";
 import RequestsHeader from "../components/requests/RequestsHeader";
 import RequestsTable from "../components/requests/RequestsTable";
 import RequestCreateModal from "../components/requests/RequestCreateModal";
-import { reverseGeocodeCity } from "../utils/geocoding";
+import { reverseGeocodeLocation } from "../utils/geocoding";
+import { buildRequestQuery, createRequestFilters } from "../utils/requestFilters";
 
 const PAGE_SIZE = 8;
 const CITY_ACCURACY_LIMIT_METERS = 50000;
@@ -16,57 +17,70 @@ export default function RequestsList() {
   const [msg, setMsg] = useState("");
   const [open, setOpen] = useState(false);
   const [title, setTitle] = useState("");
+  const [address, setAddress] = useState("");
   const [city, setCity] = useState("");
   const [photo, setPhoto] = useState(null);
   const [busy, setBusy] = useState(false);
   const [detectingCity, setDetectingCity] = useState(false);
   const [formMsg, setFormMsg] = useState(null);
   const [page, setPage] = useState(1);
+  const [loading, setLoading] = useState(false);
+  const [filters, setFilters] = useState(() => createRequestFilters());
 
   const detectCity = () => {
     if (!navigator.geolocation) {
-      setFormMsg({ type: "warning", text: "Геолокация не поддерживается браузером" });
+      setFormMsg({ type: "warning", text: "Геолокация не поддерживается браузером." });
       return;
     }
     setDetectingCity(true);
     navigator.geolocation.getCurrentPosition(
-      async (pos) => {
+      async (position) => {
         try {
-          const accuracy = Number(pos.coords.accuracy || 0);
+          const accuracy = Number(position.coords.accuracy || 0);
           if (accuracy > CITY_ACCURACY_LIMIT_METERS) {
-            setFormMsg({ type: "warning", text: "Геолокация неточная, пробую определить город по доступным данным." });
+            setFormMsg({ type: "warning", text: "Геолокация неточная, проверьте город вручную." });
           }
-          const cityName = await reverseGeocodeCity(pos.coords.latitude, pos.coords.longitude);
-          if (cityName) {
-            setCity(cityName);
+          const location = await reverseGeocodeLocation(position.coords.latitude, position.coords.longitude);
+          if (location.city || location.address) {
+            setCity(location.city || "");
+            setAddress(location.address || "");
+            if (location.city && !location.address) {
+              setFormMsg({
+                type: "warning",
+                text: "Город определён, но точный адрес не найден. Укажите адрес вручную.",
+              });
+            }
           } else {
-            setFormMsg({ type: "warning", text: "Не удалось определить город. Введите вручную." });
+            setFormMsg({ type: "warning", text: "Не удалось определить адрес и город автоматически." });
           }
         } catch {
-          setFormMsg({ type: "warning", text: "Не удалось определить город. Введите вручную." });
+          setFormMsg({ type: "warning", text: "Не удалось определить адрес и город автоматически." });
         } finally {
           setDetectingCity(false);
         }
       },
       () => {
         setDetectingCity(false);
-        setFormMsg({ type: "warning", text: "Нет доступа к геолокации. Введите город вручную." });
+        setFormMsg({ type: "warning", text: "Нет доступа к геолокации. Укажите адрес и город вручную." });
       },
       { enableHighAccuracy: true, timeout: 8000 }
     );
   };
 
-  const loadRequests = async () => {
+  const loadRequests = async (nextFilters = filters) => {
+    setLoading(true);
     try {
-      const res = await getRequests();
-      setItems(res.data ?? res);
-    } catch (e) {
-      setMsg("Ошибка: " + (e.response?.data ? JSON.stringify(e.response.data) : e.message));
+      const data = await getRequests(buildRequestQuery(nextFilters));
+      setItems(Array.isArray(data) ? data : data?.data ?? []);
+    } catch (error) {
+      setMsg("Ошибка: " + (error.response?.data ? JSON.stringify(error.response.data) : error.message));
+    } finally {
+      setLoading(false);
     }
   };
 
   useEffect(() => {
-    loadRequests();
+    loadRequests(filters);
   }, []);
 
   useEffect(() => {
@@ -79,61 +93,95 @@ export default function RequestsList() {
   }, [items, page]);
 
   const hasActive = useMemo(
-    () => items.some((r) => r.status !== "COMPLETED"),
+    () => items.some((request) => !["COMPLETED", "TRANSFERRED"].includes(request.status)),
     [items]
   );
+
+  const updateFilter = (field, value) => {
+    setFilters((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const applyFilters = async () => {
+    setPage(1);
+    await loadRequests(filters);
+  };
+
+  const resetFilters = async () => {
+    const nextFilters = createRequestFilters();
+    setFilters(nextFilters);
+    setPage(1);
+    await loadRequests(nextFilters);
+  };
 
   const submit = async () => {
     setFormMsg(null);
 
-    if (!title.trim()) return setFormMsg({ type: "warning", text: "Введите описание" });
-    if (!photo) return setFormMsg({ type: "warning", text: "Прикрепите фото" });
-    if (!navigator.geolocation) return setFormMsg({ type: "danger", text: "Геолокация не поддерживается" });
+    if (!title.trim()) {
+      setFormMsg({ type: "warning", text: "Введите описание." });
+      return;
+    }
+    if (!photo) {
+      setFormMsg({ type: "warning", text: "Прикрепите фото." });
+      return;
+    }
+    if (!navigator.geolocation) {
+      setFormMsg({ type: "danger", text: "Геолокация не поддерживается браузером." });
+      return;
+    }
 
-    // Coordinates are required for the PointField on the backend.
-    console.info("[REQUEST] create start", { titleLength: title.trim().length, hasPhoto: !!photo });
     setBusy(true);
     navigator.geolocation.getCurrentPosition(
-      async (pos) => {
-        console.info("[REQUEST] geolocation success");
-        const form = new FormData();
-        let cityValue = city.trim();
-        const accuracy = Number(pos.coords.accuracy || 0);
-        if (!cityValue && accuracy > CITY_ACCURACY_LIMIT_METERS) {
-          setFormMsg({ type: "warning", text: "Геолокация неточная. Если город определится неверно, исправьте его вручную." });
-        }
-        if (!cityValue) {
-          try {
-            cityValue = await reverseGeocodeCity(pos.coords.latitude, pos.coords.longitude);
-          } catch {
-            cityValue = "";
-          }
-        }
-        form.append("title", title);
-        form.append("latitude", pos.coords.latitude);
-        form.append("longitude", pos.coords.longitude);
-        form.append("city", cityValue);
-        form.append("before_photo", photo);
-
+      async (position) => {
         try {
-          const res = await http.post("/api/requests/", form, { headers: { "Content-Type": "multipart/form-data" } });
-          console.info("[REQUEST] create success", { id: res?.data?.id });
-          setFormMsg({ type: "success", text: "Заявка создана" });
+          let cityValue = city.trim();
+          let addressValue = address.trim();
+          if (!cityValue || !addressValue) {
+            try {
+              const location = await reverseGeocodeLocation(position.coords.latitude, position.coords.longitude);
+              cityValue = cityValue || location.city;
+              addressValue = addressValue || location.address;
+            } catch {
+              cityValue = cityValue || "";
+              addressValue = addressValue || "";
+            }
+          }
+
+          if (!addressValue) {
+            setFormMsg({
+              type: "warning",
+              text: "Не удалось определить точный адрес автоматически. Укажите адрес вручную.",
+            });
+            setBusy(false);
+            return;
+          }
+
+          await createRequest({
+            title: title.trim(),
+            address: addressValue,
+            city: cityValue,
+            latitude: position.coords.latitude,
+            longitude: position.coords.longitude,
+            beforePhoto: photo,
+          });
+
+          setFormMsg({ type: "success", text: "Заявка создана." });
           setTitle("");
+          setAddress("");
           setCity("");
           setPhoto(null);
-          await loadRequests();
-        } catch (e) {
-          console.error("[REQUEST] create failed", { error: e.response?.data ?? e.message });
-          setFormMsg({ type: "danger", text: "Ошибка отправки: " + (e.response?.data ? JSON.stringify(e.response.data) : e.message) });
+          await loadRequests(filters);
+        } catch (error) {
+          setFormMsg({
+            type: "danger",
+            text: "Ошибка отправки: " + (error.response?.data ? JSON.stringify(error.response.data) : error.message),
+          });
         } finally {
           setBusy(false);
         }
       },
-      (err) => {
-        console.error("[REQUEST] geolocation failed", { code: err.code, message: err.message });
+      (error) => {
         setBusy(false);
-        setFormMsg({ type: "danger", text: "Геолокация недоступна: " + err.message });
+        setFormMsg({ type: "danger", text: "Геолокация недоступна: " + error.message });
       },
       { enableHighAccuracy: true, timeout: 8000 }
     );
@@ -141,10 +189,15 @@ export default function RequestsList() {
 
   return (
     <div className="gc-card gc-card--soft gc-anim gc-anim--up p-4">
-      <RequestsHeader
-        hasActive={hasActive}
-        total={items.length}
-        onCreate={() => setOpen(true)}
+      <RequestsHeader hasActive={hasActive} total={items.length} onCreate={() => setOpen(true)} />
+
+      <RequestFiltersPanel
+        value={filters}
+        onChange={updateFilter}
+        onApply={applyFilters}
+        onReset={resetFilters}
+        loading={loading}
+        searchPlaceholder="Поиск по id, названию, адресу или городу"
       />
 
       {msg && <Notice type="danger" text={msg} onClose={() => setMsg("")} />}
@@ -156,6 +209,7 @@ export default function RequestsList() {
       <RequestCreateModal
         open={open}
         title={title}
+        address={address}
         city={city}
         photo={photo}
         busy={busy}
@@ -164,6 +218,7 @@ export default function RequestsList() {
         onClose={() => setOpen(false)}
         onMessageClose={() => setFormMsg(null)}
         onTitleChange={setTitle}
+        onAddressChange={setAddress}
         onCityChange={setCity}
         onDetectCity={detectCity}
         onPhotoChange={setPhoto}

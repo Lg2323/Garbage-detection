@@ -12,7 +12,12 @@ from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
+from requests_app.models import Request
+from requests_app.serializers import RequestListSerializer
+
 from .serializers import (
+    MeSerializer,
+    MeUpdateSerializer,
     RegisterSerializer,
     UserSerializer,
     PasswordResetRequestSerializer,
@@ -25,14 +30,38 @@ class MeView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
-        u = request.user
-        return Response({
-            "id": u.id,
-            "username": u.username,
-            "email": u.email,
-            "role": u.role,
-            "city": u.city,
-        })
+        return Response(MeSerializer(request.user).data)
+
+    def patch(self, request):
+        serializer = MeUpdateSerializer(instance=request.user, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(MeSerializer(request.user).data, status=status.HTTP_200_OK)
+
+
+class MeSubmittedRequestsView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        qs = (
+            Request.objects.filter(created_by=request.user)
+            .select_related(
+                "created_by",
+                "assigned_worker",
+                "coordinator",
+                "federal_subject",
+                "municipality",
+                "locality",
+                "territory_type",
+                "ownership_type",
+                "responsible_organization",
+                "responsible_department",
+                "assigned_brigade",
+            )
+            .prefetch_related("rework_events")
+            .order_by("-created_at", "-id")
+        )
+        return Response(RequestListSerializer(qs, many=True, context={"request": request}).data)
 
 
 class RegisterView(generics.CreateAPIView):
@@ -118,9 +147,28 @@ class WorkersListView(ListAPIView):
     serializer_class = UserSerializer
 
     def get_queryset(self):
-        if self.request.user.role not in ("COORDINATOR", "ADMIN"):
+        user = self.request.user
+        if user.role not in ("COORDINATOR", "ORG_MANAGER", "ADMIN"):
             return User.objects.none()
-        return User.objects.filter(role="WORKER").only("id", "username", "email", "role", "phone", "city")
+
+        qs = User.objects.filter(role="WORKER", is_active=True).select_related("organization", "department")
+        if user.role == "ORG_MANAGER":
+            if not user.organization_id:
+                return User.objects.none()
+            qs = qs.filter(organization_id=user.organization_id)
+
+        return qs.only(
+            "id",
+            "username",
+            "email",
+            "role",
+            "phone",
+            "city",
+            "organization_id",
+            "department_id",
+            "organization__name",
+            "department__name",
+        )
 
 
 class PasswordResetRequestView(APIView):

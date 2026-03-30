@@ -4,6 +4,7 @@ import FileDropzone from "../FileDropzone";
 export default function RequestCreateModal({
   open,
   title,
+  address,
   city,
   photo,
   busy,
@@ -12,6 +13,7 @@ export default function RequestCreateModal({
   onClose,
   onMessageClose,
   onTitleChange,
+  onAddressChange,
   onCityChange,
   onDetectCity,
   onPhotoChange,
@@ -38,7 +40,17 @@ export default function RequestCreateModal({
             className="form-control"
             placeholder="Например: мусор у входа в парк"
             value={title}
-            onChange={(e) => onTitleChange(e.target.value)}
+            onChange={(event) => onTitleChange(event.target.value)}
+          />
+        </div>
+
+        <div className="mb-3">
+          <label className="form-label gc-muted">Адрес</label>
+          <input
+            className="form-control"
+            placeholder="Например: ул. Ленина, 10"
+            value={address}
+            onChange={(event) => onAddressChange(event.target.value)}
           />
         </div>
 
@@ -49,7 +61,7 @@ export default function RequestCreateModal({
               className="form-control"
               placeholder="Например: Москва"
               value={city}
-              onChange={(e) => onCityChange(e.target.value)}
+              onChange={(event) => onCityChange(event.target.value)}
             />
             <button className="btn btn-outline-secondary" type="button" onClick={onDetectCity} disabled={detectingCity}>
               {detectingCity ? "..." : "Определить"}
@@ -58,11 +70,7 @@ export default function RequestCreateModal({
         </div>
 
         <div className="mb-3">
-          <FileDropzone
-            label="Фото"
-            file={photo}
-            onChange={onPhotoChange}
-          />
+          <FileDropzone label="Фото" file={photo} onChange={onPhotoChange} />
         </div>
 
         <div className="d-flex gap-2">

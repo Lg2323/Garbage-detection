@@ -5,7 +5,19 @@ from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
 from rest_framework.views import APIView
 
-from requests_app.models import Request
+from requests_app.models import (
+    Brigade,
+    Department,
+    FederalSubject,
+    Locality,
+    Municipality,
+    Organization,
+    OrganizationType,
+    OwnershipType,
+    Request,
+    ResponsibilityZone,
+    TerritoryType,
+)
 from requests_app.permissions import IsAdminRole
 from .serializers import AdminUserSerializer, AdminUserCreateSerializer, AdminUserUpdateSerializer
 
@@ -15,7 +27,7 @@ User = get_user_model()
 
 class AdminUserViewSet(ModelViewSet):
     permission_classes = [IsAuthenticated, IsAdminRole]
-    queryset = User.objects.all().order_by("id")
+    queryset = User.objects.select_related("organization", "department").all().order_by("id")
 
     def get_queryset(self):
         qs = super().get_queryset()
@@ -25,6 +37,8 @@ class AdminUserViewSet(ModelViewSet):
                 Q(username__icontains=q)
                 | Q(email__icontains=q)
                 | Q(phone__icontains=q)
+                | Q(organization__name__icontains=q)
+                | Q(department__name__icontains=q)
             )
         return qs
 
@@ -57,5 +71,17 @@ class AdminStatsView(APIView):
                 "requests_by_status": list(req_counts),
                 "users_total": User.objects.count(),
                 "users_by_role": list(user_counts),
+                "reference_totals": {
+                    "federal_subjects": FederalSubject.objects.count(),
+                    "municipalities": Municipality.objects.count(),
+                    "localities": Locality.objects.count(),
+                    "organization_types": OrganizationType.objects.count(),
+                    "organizations": Organization.objects.count(),
+                    "departments": Department.objects.count(),
+                    "brigades": Brigade.objects.count(),
+                    "territory_types": TerritoryType.objects.count(),
+                    "ownership_types": OwnershipType.objects.count(),
+                    "responsibility_zones": ResponsibilityZone.objects.count(),
+                },
             }
         )

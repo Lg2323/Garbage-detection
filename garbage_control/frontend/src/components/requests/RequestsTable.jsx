@@ -8,21 +8,28 @@ const StatusBadge = ({ status }) => (
 export default function RequestsTable({ items }) {
   return (
     <div className="table-responsive">
-      <table className="table align-middle">
-        <thead>
-          <tr className="gc-muted">
-            <th style={{ width: 90 }}>#</th>
-            <th>Описание</th>
-            <th style={{ width: 160 }}>Статус</th>
-            <th style={{ width: 180 }}>Прогресс</th>
-            <th style={{ width: 220 }}>Создана</th>
-          </tr>
+        <table className="table align-middle">
+          <thead>
+            <tr className="gc-muted">
+              <th style={{ width: 90 }}>#</th>
+              <th>Описание</th>
+              <th style={{ width: 220 }}>Статус</th>
+              <th style={{ width: 180 }}>Прогресс</th>
+              <th style={{ width: 220 }}>Создана</th>
+            </tr>
         </thead>
         <tbody>
           {items.map((r) => (
             <tr key={r.id}>
               <td className="fw-semibold">#{r.id}</td>
-              <td>{r.title}</td>
+              <td>
+                <div className="fw-semibold">{r.title}</div>
+                {(r.city || r.address) && (
+                  <div className="gc-muted" style={{ fontSize: 12 }}>
+                    {[r.city, r.address].filter(Boolean).join(" / ")}
+                  </div>
+                )}
+              </td>
               <td>
                 <StatusBadge status={r.status} />
               </td>

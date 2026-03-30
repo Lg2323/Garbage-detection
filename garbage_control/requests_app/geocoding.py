@@ -52,11 +52,56 @@ def _reverse_geocode(lat: float, lon: float) -> dict:
         return {"provider": "yandex", "data": json.loads(resp.read().decode("utf-8"))}
 
 
-def detect_city_by_coordinates(lat: float, lon: float) -> str:
-    """
-    Best-effort reverse geocoding.
-    Returns empty string if city cannot be detected.
-    """
+def _extract_city_from_nominatim(address: dict) -> str:
+    return (
+        address.get("city")
+        or address.get("town")
+        or address.get("village")
+        or address.get("municipality")
+        or ""
+    ).strip()
+
+
+def _extract_address_from_nominatim(data: dict, city: str) -> str:
+    address = data.get("address") or {}
+    road = (address.get("road") or address.get("pedestrian") or address.get("footway") or "").strip()
+    house_number = (address.get("house_number") or "").strip()
+    line = " ".join(part for part in (road, house_number) if part).strip()
+    if line:
+        return line[:255]
+    return ""
+
+
+def _extract_city_from_yandex(components: list[dict]) -> str:
+    for component in components:
+        if component.get("kind") == "locality":
+            name = (component.get("name") or "").strip()
+            if name:
+                return name[:120]
+    return ""
+
+
+def _extract_address_from_yandex(components: list[dict]) -> str:
+    street = ""
+    house = ""
+    for component in components:
+        kind = component.get("kind")
+        name = (component.get("name") or "").strip()
+        if not name:
+            continue
+        if kind in ("street", "route") and not street:
+            street = name
+        elif kind == "house" and not house:
+            house = name
+
+    if street and house:
+        return f"{street}, {house}"[:255]
+    if street:
+        return street[:255]
+    return ""
+
+
+def detect_location_by_coordinates(lat: float, lon: float) -> dict:
     try:
         wrapped = _reverse_geocode(float(lat), float(lon))
         provider = wrapped.get("provider")
@@ -64,14 +109,11 @@ def detect_city_by_coordinates(lat: float, lon: float) -> str:
 
         if provider == "nominatim":
             address = data.get("address") or {}
-            city = (
-                address.get("city")
-                or address.get("town")
-                or address.get("village")
-                or address.get("municipality")
-                or ""
-            ).strip()
-            return city[:120] if city else ""
+            city = _extract_city_from_nominatim(address)[:120]
+            return {
+                "city": city,
+                "address": _extract_address_from_nominatim(data, city),
+            }
 
         members = (
             data.get("response", {})
@@ -79,21 +121,25 @@ def detect_city_by_coordinates(lat: float, lon: float) -> str:
             .get("featureMember", [])
         )
         if not members:
-            return ""
+            return {"city": "", "address": ""}
 
-        components = (
-            members[0]
-            .get("GeoObject", {})
-            .get("metaDataProperty", {})
-            .get("GeocoderMetaData", {})
-            .get("Address", {})
-            .get("Components", [])
-        )
-        for component in components:
-            if component.get("kind") == "locality":
-                name = (component.get("name") or "").strip()
-                if name:
-                    return name[:120]
+        geo_object = members[0].get("GeoObject", {})
+        geocoder_meta = geo_object.get("metaDataProperty", {}).get("GeocoderMetaData", {})
+        address_meta = geocoder_meta.get("Address", {})
+        components = address_meta.get("Components", [])
+        city = _extract_city_from_yandex(components)
+        return {
+            "city": city,
+            "address": _extract_address_from_yandex(components),
+        }
     except Exception as exc:
         logger.warning("City detection failed for lat=%s lon=%s: %s", lat, lon, exc)
-    return ""
+    return {"city": "", "address": ""}
+
+
+def detect_city_by_coordinates(lat: float, lon: float) -> str:
+    """
+    Best-effort reverse geocoding.
+    Returns empty string if city cannot be detected.
+    """
+    return detect_location_by_coordinates(lat, lon).get("city", "")

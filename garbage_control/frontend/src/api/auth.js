@@ -44,6 +44,17 @@ export async function getMe() {
   return res.data;
 }
 
+export async function updateMe(payload) {
+  const res = await http.patch("/api/auth/me/", payload);
+  console.info("[AUTH] me updated", { role: res.data?.role, username: res.data?.username });
+  return res.data;
+}
+
+export async function getMySubmittedRequests() {
+  const res = await http.get("/api/auth/me/submitted-requests/");
+  return res.data;
+}
+
 export async function logoutUser() {
   console.info("[AUTH] logout request");
   try {

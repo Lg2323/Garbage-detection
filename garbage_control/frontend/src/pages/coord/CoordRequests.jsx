@@ -1,23 +1,30 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { getAllRequests } from "../../api/coord";
-import { statusLabel } from "../../ui/status";
 import Notice from "../../components/Notice";
+import Pagination from "../../components/Pagination";
+import RequestFiltersPanel from "../../components/requests/RequestFiltersPanel";
+import { getAllRequests } from "../../api/coord";
+import { statusClass, statusLabel } from "../../ui/status";
+import { buildRequestQuery, createRequestFilters } from "../../utils/requestFilters";
 
-const STATUSES = ["", "CREATED", "VERIFIED", "IN_PROGRESS", "ON_CHECK", "COMPLETED"];
+const PAGE_SIZE = 10;
 
 export default function CoordRequests() {
   const [items, setItems] = useState([]);
-  const [status, setStatus] = useState("");
-  const [q, setQ] = useState("");
   const [msg, setMsg] = useState("");
   const [loading, setLoading] = useState(false);
+  const [page, setPage] = useState(1);
+  const [filters, setFilters] = useState(() =>
+    createRequestFilters({
+      ordering: "created_at_desc",
+    })
+  );
 
-  const load = async () => {
+  const load = async (nextFilters = filters) => {
     setMsg("");
     setLoading(true);
     try {
-      const data = await getAllRequests({ status: status || undefined, q: q || undefined });
+      const data = await getAllRequests(buildRequestQuery(nextFilters));
       setItems(data);
     } catch (e) {
       setMsg("Ошибка: " + (e.response?.data ? JSON.stringify(e.response.data) : e.message));
@@ -27,49 +34,57 @@ export default function CoordRequests() {
   };
 
   useEffect(() => {
-    load();
+    load(filters);
   }, []);
 
-  const filtered = useMemo(() => {
-    const s = q.trim().toLowerCase();
-    if (!s) return items;
-    return items.filter((x) => (x.title || "").toLowerCase().includes(s) || String(x.id).includes(s));
-  }, [items, q]);
+  useEffect(() => {
+    setPage(1);
+  }, [items.length]);
+
+  const pagedItems = useMemo(() => {
+    const start = (page - 1) * PAGE_SIZE;
+    return items.slice(start, start + PAGE_SIZE);
+  }, [items, page]);
+
+  const updateFilter = (field, value) => {
+    setFilters((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const applyFilters = async () => {
+    setPage(1);
+    await load(filters);
+  };
+
+  const resetFilters = async () => {
+    const nextFilters = createRequestFilters({
+      ordering: "created_at_desc",
+    });
+    setFilters(nextFilters);
+    setPage(1);
+    await load(nextFilters);
+  };
 
   return (
     <div className="card p-3 gc-anim gc-anim--up">
       <div className="d-flex align-items-center justify-content-between mb-3">
         <div>
-          <h4 className="mb-0">Координатор — заявки</h4>
+          <h4 className="mb-0">Координатор - заявки</h4>
           <div className="text-muted">Список заявок и быстрый доступ к деталям</div>
         </div>
         <span className="badge text-bg-light">Всего: {items.length}</span>
       </div>
 
-      <div className="row g-2 mb-3">
-        <div className="col-md-6">
-          <input
-            className="form-control"
-            placeholder="Поиск по id или описанию..."
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-          />
-        </div>
-        <div className="col-md-4">
-          <select className="form-select" value={status} onChange={(e) => setStatus(e.target.value)}>
-            {STATUSES.map((s) => (
-              <option key={s} value={s}>{s ? statusLabel(s) : "Все статусы"}</option>
-            ))}
-          </select>
-        </div>
-        <div className="col-md-2">
-          <button className="btn btn-outline-secondary w-100" onClick={load} disabled={loading}>
-            {loading ? "..." : "Применить"}
-          </button>
-        </div>
-      </div>
+      <RequestFiltersPanel
+        value={filters}
+        onChange={updateFilter}
+        onApply={applyFilters}
+        onReset={resetFilters}
+        loading={loading}
+        showHandlingMode
+        searchPlaceholder="Поиск по id, названию, адресу, городу или исполнителю"
+      />
 
-      <Notice type="danger" text={msg} onClose={() => setMsg("")} />
+      {msg && <Notice type="danger" text={msg} onClose={() => setMsg("")} />}
 
       <div className="table-responsive">
         <table className="table align-middle">
@@ -77,16 +92,27 @@ export default function CoordRequests() {
             <tr>
               <th style={{ width: 80 }}>ID</th>
               <th>Описание</th>
-              <th style={{ width: 160 }}>Статус</th>
+              <th style={{ width: 160 }}>Город</th>
+              <th style={{ width: 220 }}>Статус</th>
+              <th style={{ width: 220 }}>Создана</th>
               <th style={{ width: 120 }}></th>
             </tr>
           </thead>
           <tbody>
-            {filtered.map((r) => (
+            {pagedItems.map((r) => (
               <tr key={r.id}>
                 <td className="fw-semibold">#{r.id}</td>
-                <td>{r.title}</td>
-                <td><span className="badge text-bg-secondary">{statusLabel(r.status)}</span></td>
+                <td>
+                  <div className="fw-semibold">{r.title}</div>
+                  {r.address && <div className="text-muted small">{r.address}</div>}
+                </td>
+                <td>{r.city || "-"}</td>
+                <td>
+                  <span className={statusClass(r.status)}>{statusLabel(r.status)}</span>
+                </td>
+                <td className="text-muted">
+                  {r.created_at ? new Date(r.created_at).toLocaleString() : "-"}
+                </td>
                 <td>
                   <Link to={`/coord/requests/${r.id}`} className="btn btn-sm btn-outline-primary">
                     Открыть
@@ -94,14 +120,16 @@ export default function CoordRequests() {
                 </td>
               </tr>
             ))}
-            {!filtered.length && (
+            {!pagedItems.length && (
               <tr>
-                <td colSpan={4} className="text-muted">Ничего не найдено</td>
+                <td colSpan={6} className="text-muted">Ничего не найдено</td>
               </tr>
             )}
           </tbody>
         </table>
       </div>
+
+      <Pagination page={page} pageSize={PAGE_SIZE} total={items.length} onPageChange={setPage} />
     </div>
   );
 }

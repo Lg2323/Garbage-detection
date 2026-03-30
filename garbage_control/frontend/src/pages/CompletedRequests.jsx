@@ -4,6 +4,12 @@ import Notice from "../components/Notice";
 import Pagination from "../components/Pagination";
 import CompletedHeader from "../components/completed/CompletedHeader";
 import CompletedRequestCard from "../components/completed/CompletedRequestCard";
+import RequestFiltersPanel from "../components/requests/RequestFiltersPanel";
+import {
+  COMPLETED_SORT_OPTIONS,
+  buildRequestQuery,
+  createRequestFilters,
+} from "../utils/requestFilters";
 
 const PAGE_SIZE = 6;
 
@@ -13,12 +19,17 @@ export default function CompletedRequests() {
   const [loading, setLoading] = useState(false);
   const [positions, setPositions] = useState({});
   const [page, setPage] = useState(1);
+  const [filters, setFilters] = useState(() =>
+    createRequestFilters({
+      ordering: "updated_at_desc",
+    })
+  );
 
-  const load = async () => {
+  const load = async (nextFilters = filters) => {
     setMsg("");
     setLoading(true);
     try {
-      const data = await getCompletedRequests();
+      const data = await getCompletedRequests(buildRequestQuery(nextFilters));
       setItems(data || []);
     } catch (e) {
       setMsg("Ошибка: " + (e.response?.data ? JSON.stringify(e.response.data) : e.message));
@@ -28,7 +39,7 @@ export default function CompletedRequests() {
   };
 
   useEffect(() => {
-    load();
+    load(filters);
   }, []);
 
   useEffect(() => {
@@ -44,9 +55,42 @@ export default function CompletedRequests() {
     setPositions((prev) => ({ ...prev, [id]: value }));
   };
 
+  const updateFilter = (field, value) => {
+    setFilters((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const applyFilters = async () => {
+    setPage(1);
+    await load(filters);
+  };
+
+  const resetFilters = async () => {
+    const nextFilters = createRequestFilters({
+      ordering: "updated_at_desc",
+    });
+    setFilters(nextFilters);
+    setPage(1);
+    await load(nextFilters);
+  };
+
   return (
     <div className="gc-card gc-card--soft gc-anim gc-anim--up p-4">
       <CompletedHeader total={items.length} loading={loading} onRefresh={load} />
+
+      <RequestFiltersPanel
+        value={filters}
+        onChange={updateFilter}
+        onApply={applyFilters}
+        onReset={resetFilters}
+        loading={loading}
+        showStatus={false}
+        showHandlingMode={false}
+        showCreatedRange={false}
+        showUpdatedRange
+        updatedLabel="Дата завершения"
+        sortOptions={COMPLETED_SORT_OPTIONS}
+        searchPlaceholder="Поиск по id, названию, адресу или городу"
+      />
 
       {msg && <Notice type="danger" text={msg} onClose={() => setMsg("")} />}
 

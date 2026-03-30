@@ -13,7 +13,7 @@ export default function ForgotPassword() {
     setBusy(true);
     try {
       await requestPasswordReset(email);
-      setMsg({ type: "success", text: "Если аккаунт существует, письмо отправлено." });
+      setMsg({ type: "success", text: "Письмо отправлено." });
       setEmail("");
     } catch (err) {
       setMsg({ type: "danger", text: "Ошибка: " + (err.response?.data ? JSON.stringify(err.response.data) : err.message) });

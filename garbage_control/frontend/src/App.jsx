@@ -12,70 +12,76 @@ import CreateRequest from "./pages/CreateRequest";
 import CompletedRequests from "./pages/CompletedRequests";
 import CityStats from "./pages/CityStats";
 import Faq from "./pages/Faq";
+import Profile from "./pages/Profile";
 
 import CoordinatorRequests from "./pages/coord/CoordRequests";
 import RequestDetail from "./pages/coord/CoordRequestDetail";
 import CoordMap from "./pages/coord/CoordMap";
+import OrganizationRequests from "./pages/org/OrganizationRequests";
+import OrganizationRequestDetail from "./pages/org/OrganizationRequestDetail";
 
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminUsers from "./pages/admin/AdminUsers";
 import AdminRequests from "./pages/admin/AdminRequests";
+import AdminDirectories from "./pages/admin/AdminDirectories";
+import AdminZones from "./pages/admin/AdminZones";
 import AdminLayout from "./pages/admin/AdminLayout";
 import WorkerRequests from "./pages/worker/WorkerRequests";
+import WorkerRequestDetail from "./pages/worker/WorkerRequestDetail";
 
-import { bootstrapAuth, logoutUser, getMe } from "./api/auth";
+import { bootstrapAuth, getMe, logoutUser } from "./api/auth";
 
 export default function App() {
   const location = useLocation();
   const [authed, setAuthed] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [me, setMe] = useState(null); 
+  const [me, setMe] = useState(null);
 
   useEffect(() => {
     (async () => {
       try {
         await bootstrapAuth();
+        const currentUser = await getMe();
         setAuthed(true);
-        const m = await getMe();
-        setMe(m);
-        console.info("[APP] session restored", { role: m?.role, username: m?.username });
+        setMe(currentUser);
       } catch {
         setAuthed(false);
         setMe(null);
-        console.info("[APP] guest mode");
       } finally {
         setLoading(false);
       }
     })();
   }, []);
 
+  const finishAuth = async () => {
+    setAuthed(true);
+    setMe(await getMe());
+  };
+
   const doLogout = async () => {
     try {
       await logoutUser();
-    } catch {
-      // token is already cleared in logoutUser finally block
+    } finally {
+      setAuthed(false);
+      setMe(null);
     }
-    setAuthed(false);
-    setMe(null);
-    console.info("[APP] logout completed");
   };
 
   if (loading) return <div className="container py-4">Загрузка...</div>;
 
   return (
-    <AppLayout authed={authed} role={me?.role} onLogout={doLogout} pageKey={location.pathname}>
+    <AppLayout authed={authed} role={me?.role} username={me?.username} onLogout={doLogout} pageKey={location.pathname}>
       <Routes>
-        {/* public */}
-        <Route path="/login" element={!authed ? <Login onDone={async()=>{ setAuthed(true); setMe(await getMe()); }} /> : <Navigate to="/requests" />} />
-        <Route path="/register" element={!authed ? <Register onDone={async()=>{ setAuthed(true); setMe(await getMe()); }} /> : <Navigate to="/requests" />} />
+        <Route path="/login" element={!authed ? <Login onDone={finishAuth} /> : <Navigate to="/requests" />} />
+        <Route path="/register" element={!authed ? <Register onDone={finishAuth} /> : <Navigate to="/requests" />} />
         <Route path="/forgot-password" element={!authed ? <ForgotPassword /> : <Navigate to="/requests" />} />
         <Route path="/reset-password/:uid/:token" element={<ResetPassword />} />
         <Route path="/faq" element={<Faq />} />
 
-        {/* citizen */}
         <Route path="/requests" element={authed ? <RequestsList /> : <Navigate to="/login" />} />
         <Route path="/works" element={authed ? <CompletedRequests /> : <Navigate to="/login" />} />
         <Route path="/stats" element={authed ? <CityStats /> : <Navigate to="/login" />} />
+        <Route path="/profile" element={authed ? <Profile initialMe={me} onUpdated={setMe} /> : <Navigate to="/login" />} />
         <Route
           path="/requests/new"
           element={
@@ -85,7 +91,6 @@ export default function App() {
           }
         />
 
-        {/* coordinator */}
         <Route
           path="/coord/requests"
           element={
@@ -111,7 +116,6 @@ export default function App() {
           }
         />
 
-        {/* worker */}
         <Route
           path="/worker/requests"
           element={
@@ -120,8 +124,32 @@ export default function App() {
             </RoleGuard>
           }
         />
+        <Route
+          path="/worker/requests/:id"
+          element={
+            <RoleGuard authed={authed} role={me?.role} allow={["WORKER", "ADMIN"]}>
+              <WorkerRequestDetail />
+            </RoleGuard>
+          }
+        />
 
-        {/* admin */}
+        <Route
+          path="/org/requests"
+          element={
+            <RoleGuard authed={authed} role={me?.role} allow={["ORG_MANAGER", "ADMIN"]}>
+              <OrganizationRequests />
+            </RoleGuard>
+          }
+        />
+        <Route
+          path="/org/requests/:id"
+          element={
+            <RoleGuard authed={authed} role={me?.role} allow={["ORG_MANAGER", "ADMIN"]}>
+              <OrganizationRequestDetail />
+            </RoleGuard>
+          }
+        />
+
         <Route
           path="/admin"
           element={
@@ -133,6 +161,8 @@ export default function App() {
           <Route index element={<AdminDashboard />} />
           <Route path="users" element={<AdminUsers />} />
           <Route path="requests" element={<AdminRequests />} />
+          <Route path="directories" element={<AdminDirectories />} />
+          <Route path="zones" element={<AdminZones />} />
         </Route>
 
         <Route path="/" element={authed ? <CompletedRequests /> : <Navigate to="/login" />} />

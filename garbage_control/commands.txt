@@ -31,3 +31,6 @@ docker compose down -v
 docker compose up -d
 docker exec -it garbage_postgis psql -U postgres -d garbage_db -c "CREATE EXTENSION postgis;"
 docker exec -it garbage_django python manage.py migrate
+
+# Пароли
+Test12345!

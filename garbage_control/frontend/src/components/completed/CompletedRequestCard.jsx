@@ -42,6 +42,11 @@ export default function CompletedRequestCard({ item, position, onPositionChange 
         <div>
           <div className="fw-semibold">{item.title}</div>
           <div className="gc-muted">#{item.id}</div>
+          {(item.city || item.address) && (
+            <div className="gc-muted" style={{ fontSize: 12 }}>
+              {[item.city, item.address].filter(Boolean).join(" / ")}
+            </div>
+          )}
         </div>
         <span className={statusClass(item.status)}>{statusLabel(item.status)}</span>
       </div>

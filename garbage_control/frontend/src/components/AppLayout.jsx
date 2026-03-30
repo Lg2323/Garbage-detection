@@ -1,11 +1,11 @@
 import { Link } from "react-router-dom";
 import logo from "../assets/logo.png";
 
-export default function AppLayout({ authed, role, onLogout, pageKey, children }) {
-  const isCoord = role === "COORDINATOR" || role === "ADMIN";
+export default function AppLayout({ authed, role, username, onLogout, pageKey, children }) {
+  const isCoordinator = role === "COORDINATOR" || role === "ADMIN";
   const isAdmin = role === "ADMIN";
   const isWorker = role === "WORKER";
-
+  const isOrgManager = role === "ORG_MANAGER" || role === "ADMIN";
 
   return (
     <>
@@ -34,6 +34,8 @@ export default function AppLayout({ authed, role, onLogout, pageKey, children })
 
                 {authed && (
                   <>
+                    <div className="gc-menu__caption">{username ? `Пользователь: ${username}` : "Аккаунт"}</div>
+                    <Link className="gc-menu__item" to="/profile">Профиль</Link>
                     <Link className="gc-menu__item" to="/faq">Инструкции</Link>
                     <Link className="gc-menu__item" to="/stats">Статистика города</Link>
                     <Link className="gc-menu__item" to="/requests">Заявки</Link>
@@ -45,7 +47,7 @@ export default function AppLayout({ authed, role, onLogout, pageKey, children })
                       </Link>
                     )}
 
-                    {isCoord && (
+                    {isCoordinator && (
                       <>
                         <Link className="gc-menu__item" to="/coord/requests">Панель координатора</Link>
                         <Link className="gc-menu__item" to="/coord/map">Карта заявок</Link>
@@ -54,6 +56,10 @@ export default function AppLayout({ authed, role, onLogout, pageKey, children })
 
                     {(isWorker || isAdmin) && (
                       <Link className="gc-menu__item" to="/worker/requests">Панель исполнителя</Link>
+                    )}
+
+                    {isOrgManager && (
+                      <Link className="gc-menu__item" to="/org/requests">Панель организации</Link>
                     )}
 
                     {isAdmin && (

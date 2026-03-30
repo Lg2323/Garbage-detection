@@ -7,6 +7,7 @@ class User(AbstractUser):
         CITIZEN = 'CITIZEN', 'Гражданин'
         WORKER = 'WORKER', 'Исполнитель'
         COORDINATOR = 'COORDINATOR', 'Координатор'
+        ORG_MANAGER = 'ORG_MANAGER', 'Руководитель организации'
         ADMIN = 'ADMIN', 'Администратор'
 
     role = models.CharField(
@@ -25,6 +26,22 @@ class User(AbstractUser):
         max_length=120,
         blank=True,
         default=""
+    )
+
+    organization = models.ForeignKey(
+        "requests_app.Organization",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="users",
+    )
+
+    department = models.ForeignKey(
+        "requests_app.Department",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="users",
     )
 
     def __str__(self):

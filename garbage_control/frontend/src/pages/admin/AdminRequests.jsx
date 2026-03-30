@@ -1,29 +1,39 @@
 import { useEffect, useMemo, useState } from "react";
-import { assignWorker, listRequests, listWorkers, setRequestStatus } from "../../api/admin";
-import { statusLabel } from "../../ui/status";
+import { Link } from "react-router-dom";
 import Notice from "../../components/Notice";
 import Pagination from "../../components/Pagination";
+import RequestFiltersPanel from "../../components/requests/RequestFiltersPanel";
+import { assignWorker, listRequests, listWorkers, setRequestStatus } from "../../api/admin";
+import { handlingModeLabel, statusLabel } from "../../ui/status";
+import { buildRequestQuery, createRequestFilters } from "../../utils/requestFilters";
 
-const STATUSES = ["CREATED", "VERIFIED", "IN_PROGRESS", "ON_CHECK", "COMPLETED"];
+const STATUSES = ["CREATED", "VERIFIED", "IN_PROGRESS", "ON_CHECK", "COMPLETED", "TRANSFERRED"];
+const PAGE_SIZE = 12;
 
 export default function AdminRequests() {
   const [items, setItems] = useState([]);
   const [workers, setWorkers] = useState([]);
-  const [q, setQ] = useState("");
-  const [statusFilter, setStatusFilter] = useState("");
   const [msg, setMsg] = useState("");
+  const [loading, setLoading] = useState(false);
   const [busy, setBusy] = useState(false);
   const [drafts, setDrafts] = useState({});
   const [page, setPage] = useState(1);
-  const pageSize = 12;
+  const [filters, setFilters] = useState(() =>
+    createRequestFilters({
+      ordering: "created_at_desc",
+    })
+  );
 
-  const loadRequests = async () => {
+  const loadRequests = async (nextFilters = filters) => {
+    setLoading(true);
     try {
-      const data = await listRequests(statusFilter ? { status: statusFilter } : {});
+      const data = await listRequests(buildRequestQuery(nextFilters));
       setItems(data);
       setMsg("");
-    } catch (e) {
-      setMsg("Ошибка: " + (e.response?.data ? JSON.stringify(e.response.data) : e.message));
+    } catch (error) {
+      setMsg("Ошибка: " + (error.response?.data ? JSON.stringify(error.response.data) : error.message));
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -31,111 +41,119 @@ export default function AdminRequests() {
     try {
       const data = await listWorkers();
       setWorkers(data);
-    } catch (e) {
-      setMsg("Ошибка: " + (e.response?.data ? JSON.stringify(e.response.data) : e.message));
+    } catch (error) {
+      setMsg("Ошибка: " + (error.response?.data ? JSON.stringify(error.response.data) : error.message));
     }
   };
 
   useEffect(() => {
     loadWorkers();
+    loadRequests(filters);
   }, []);
 
   useEffect(() => {
-    loadRequests();
-  }, [statusFilter]);
-
-
-  const filtered = useMemo(() => {
-    const s = q.trim().toLowerCase();
-    if (!s) return items;
-    return items.filter((x) => (x.title || "").toLowerCase().includes(s) || String(x.id).includes(s));
-  }, [items, q]);
-  useEffect(() => {
     setPage(1);
-  }, [filtered.length, q, statusFilter]);
-
+  }, [items.length]);
 
   const pagedItems = useMemo(() => {
-    const start = (page - 1) * pageSize;
-    return filtered.slice(start, start + pageSize);
-  }, [filtered, page, pageSize]);
+    const start = (page - 1) * PAGE_SIZE;
+    return items.slice(start, start + PAGE_SIZE);
+  }, [items, page]);
+
+  const updateFilter = (field, value) => {
+    setFilters((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const applyFilters = async () => {
+    setPage(1);
+    await loadRequests(filters);
+  };
+
+  const resetFilters = async () => {
+    const nextFilters = createRequestFilters({
+      ordering: "created_at_desc",
+    });
+    setFilters(nextFilters);
+    setPage(1);
+    await loadRequests(nextFilters);
+  };
 
   const setDraft = (id, patch) => {
     setDrafts((prev) => ({ ...prev, [id]: { ...prev[id], ...patch } }));
   };
 
-  const getDraft = (r) => ({
-    assigned_worker: r.assigned_worker || "",
-    status: r.status,
-    ...(drafts[r.id] || {}),
+  const getDraft = (request) => ({
+    assigned_worker: request.assigned_worker || "",
+    status: request.status,
+    ...(drafts[request.id] || {}),
   });
 
-  const doAssign = async (r) => {
-    const d = getDraft(r);
-    if (!d.assigned_worker) return;
+  const doAssign = async (request) => {
+    const draft = getDraft(request);
+    if (!draft.assigned_worker) return;
     setBusy(true);
     try {
-      await assignWorker(r.id, d.assigned_worker);
-      await loadRequests();
-    } catch (e) {
-      setMsg("Ошибка: " + (e.response?.data ? JSON.stringify(e.response.data) : e.message));
+      await assignWorker(request.id, draft.assigned_worker);
+      await loadRequests(filters);
+      setMsg("");
+    } catch (error) {
+      setMsg("Ошибка: " + (error.response?.data ? JSON.stringify(error.response.data) : error.message));
     } finally {
       setBusy(false);
     }
   };
 
-  const doSetStatus = async (r) => {
-    const d = getDraft(r);
+  const doSetStatus = async (request) => {
+    const draft = getDraft(request);
     setBusy(true);
     try {
-      await setRequestStatus(r.id, d.status);
-      await loadRequests();
-    } catch (e) {
-      setMsg("Ошибка: " + (e.response?.data ? JSON.stringify(e.response.data) : e.message));
+      await setRequestStatus(request.id, draft.status);
+      await loadRequests(filters);
+      setMsg("");
+    } catch (error) {
+      setMsg("Ошибка: " + (error.response?.data ? JSON.stringify(error.response.data) : error.message));
     } finally {
       setBusy(false);
     }
   };
+
+  const workerFilterField = (
+    <div className="col-xl-3 col-md-6">
+      <label className="gc-filter-panel__label">Исполнитель</label>
+      <select className="form-select" value={filters.assigned_worker} onChange={(event) => updateFilter("assigned_worker", event.target.value)}>
+        <option value="">Все исполнители</option>
+        <option value="unassigned">Не назначен</option>
+        {workers.map((worker) => (
+          <option key={worker.id} value={String(worker.id)}>
+            #{worker.id} {worker.username}
+          </option>
+        ))}
+      </select>
+    </div>
+  );
 
   return (
     <div className="card p-3 gc-anim gc-anim--up">
-      <div className="d-flex align-items-center justify-content-between mb-3">
+      <div className="d-flex align-items-center justify-content-between mb-3 gap-3 flex-wrap">
         <div>
           <h4 className="mb-0">Заявки</h4>
-          <div className="text-muted">Админ-вид (все заявки)</div>
+          <div className="text-muted">Полный список обращений с быстрыми админскими действиями.</div>
         </div>
         <span className="badge text-bg-light">Всего: {items.length}</span>
       </div>
 
-      <div className="row g-2 mb-3">
-        <div className="col-md-6">
-          <input
-            className="form-control"
-            placeholder="Поиск по id или описанию..."
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-          />
-        </div>
-        <div className="col-md-4">
-          <select
-            className="form-select"
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-          >
-            <option value="">Все статусы</option>
-            {STATUSES.map((s) => (
-              <option key={s} value={s}>{statusLabel(s)}</option>
-            ))}
-          </select>
-        </div>
-        <div className="col-md-2">
-          <button className="btn btn-outline-secondary w-100" onClick={loadRequests} disabled={busy}>
-            Обновить
-          </button>
-        </div>
-      </div>
+      <RequestFiltersPanel
+        value={filters}
+        onChange={updateFilter}
+        onApply={applyFilters}
+        onReset={resetFilters}
+        loading={loading}
+        showHandlingMode
+        extraFields={workerFilterField}
+        searchPlaceholder="Поиск по id, названию, адресу, городу или организации"
+      />
 
-      <Notice type="danger" text={msg} onClose={() => setMsg("")} />
+      {msg && <Notice type="danger" text={msg} onClose={() => setMsg("")} />}
 
       <div className="table-responsive">
         <table className="table align-middle">
@@ -143,67 +161,83 @@ export default function AdminRequests() {
             <tr>
               <th style={{ width: 80 }}>ID</th>
               <th>Описание</th>
-              <th style={{ width: 150 }}>Статус</th>
+              <th style={{ width: 160 }}>Статус</th>
+              <th style={{ width: 170 }}>Режим</th>
+              <th style={{ width: 220 }}>Организация</th>
               <th style={{ width: 220 }}>Назначить</th>
               <th style={{ width: 160 }}>Действия</th>
-              <th style={{ width: 220 }}>Создана</th>
+              <th style={{ width: 120 }}></th>
             </tr>
           </thead>
           <tbody>
-            {pagedItems.map((r) => {
-              const d = getDraft(r);
+            {pagedItems.map((request) => {
+              const draft = getDraft(request);
               return (
-                <tr key={r.id}>
-                  <td className="fw-semibold">#{r.id}</td>
-                  <td>{r.title}</td>
+                <tr key={request.id}>
+                  <td className="fw-semibold">#{request.id}</td>
                   <td>
-                    <select
-                      className="form-select form-select-sm"
-                      value={d.status}
-                      onChange={(e) => setDraft(r.id, { status: e.target.value })}
-                    >
-                      {STATUSES.map((s) => (
-                        <option key={s} value={s}>{statusLabel(s)}</option>
-                      ))}
-                    </select>
+                    <div className="fw-semibold">{request.title}</div>
+                    {request.address && <div className="text-muted small">{request.address}</div>}
+                    <div className="text-muted small">{request.city || "-"}</div>
                   </td>
                   <td>
-                    <select
-                      className="form-select form-select-sm"
-                      value={d.assigned_worker}
-                      onChange={(e) => setDraft(r.id, { assigned_worker: Number(e.target.value) || "" })}
-                    >
-                      <option value="">— Не назначен —</option>
-                      {workers.map((w) => (
-                        <option key={w.id} value={w.id}>
-                          #{w.id} {w.username}
+                    <select className="form-select form-select-sm" value={draft.status} onChange={(event) => setDraft(request.id, { status: event.target.value })}>
+                      {STATUSES.map((status) => (
+                        <option key={status} value={status}>
+                          {statusLabel(status)}
                         </option>
                       ))}
                     </select>
                   </td>
-                  <td className="d-flex gap-2">
-                    <button className="btn btn-outline-primary btn-sm" onClick={() => doAssign(r)} disabled={busy}>
-                      Назначить
-                    </button>
-                    <button className="btn btn-outline-secondary btn-sm" onClick={() => doSetStatus(r)} disabled={busy}>
-                      Статус
-                    </button>
+                  <td>{handlingModeLabel(request.handling_mode)}</td>
+                  <td>
+                    <div>{request.responsible_organization_name || "-"}</div>
+                    {request.responsible_department_name && (
+                      <div className="text-muted small">{request.responsible_department_name}</div>
+                    )}
                   </td>
-                  <td className="text-muted">{new Date(r.created_at).toLocaleString()}</td>
+                  <td>
+                    <select
+                      className="form-select form-select-sm"
+                      value={draft.assigned_worker}
+                      onChange={(event) => setDraft(request.id, { assigned_worker: Number(event.target.value) || "" })}
+                    >
+                      <option value="">Не назначен</option>
+                      {workers.map((worker) => (
+                        <option key={worker.id} value={worker.id}>
+                          #{worker.id} {worker.username}
+                        </option>
+                      ))}
+                    </select>
+                  </td>
+                  <td>
+                    <div className="d-flex gap-2">
+                      <button className="btn btn-outline-primary btn-sm" onClick={() => doAssign(request)} disabled={busy || loading}>
+                        Назначить
+                      </button>
+                      <button className="btn btn-outline-secondary btn-sm" onClick={() => doSetStatus(request)} disabled={busy || loading}>
+                        Статус
+                      </button>
+                    </div>
+                  </td>
+                  <td>
+                    <Link to={`/coord/requests/${request.id}`} className="btn btn-sm btn-outline-dark">
+                      Детали
+                    </Link>
+                  </td>
                 </tr>
               );
             })}
-            {!filtered.length && (
+            {!pagedItems.length && (
               <tr>
-                <td colSpan={6} className="text-muted">Ничего не найдено</td>
+                <td colSpan={8} className="text-muted">Ничего не найдено.</td>
               </tr>
             )}
           </tbody>
         </table>
       </div>
 
-      <Pagination page={page} pageSize={pageSize} total={filtered.length} onPageChange={setPage} />
-
+      <Pagination page={page} pageSize={PAGE_SIZE} total={items.length} onPageChange={setPage} />
     </div>
   );
 }
