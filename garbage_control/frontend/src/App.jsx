@@ -12,6 +12,7 @@ import CreateRequest from "./pages/CreateRequest";
 import CompletedRequests from "./pages/CompletedRequests";
 import CityStats from "./pages/CityStats";
 import Faq from "./pages/Faq";
+import NotFound from "./pages/NotFound";
 import Profile from "./pages/Profile";
 
 import CoordinatorRequests from "./pages/coord/CoordRequests";
@@ -166,7 +167,7 @@ export default function App() {
         </Route>
 
         <Route path="/" element={authed ? <CompletedRequests /> : <Navigate to="/login" />} />
-        <Route path="*" element={<Navigate to="/" />} />
+        <Route path="*" element={<NotFound authed={authed} role={me?.role} />} />
       </Routes>
     </AppLayout>
   );

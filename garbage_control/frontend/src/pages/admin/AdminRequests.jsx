@@ -142,6 +142,11 @@ export default function AdminRequests() {
         <span className="badge text-bg-light">Всего: {items.length}</span>
       </div>
 
+      <div className="gc-admin-inline-hint mb-3" data-hint="Статус и исполнитель меняются прямо в таблице ниже.">
+        <i className="bi bi-sliders" aria-hidden="true" />
+        Статус и исполнитель меняются прямо в таблице ниже.
+      </div>
+
       <RequestFiltersPanel
         value={filters}
         onChange={updateFilter}
@@ -156,7 +161,7 @@ export default function AdminRequests() {
       {msg && <Notice type="danger" text={msg} onClose={() => setMsg("")} />}
 
       <div className="table-responsive">
-        <table className="table align-middle">
+        <table className="table align-middle gc-admin-table">
           <thead>
             <tr>
               <th style={{ width: 80 }}>ID</th>
@@ -181,7 +186,7 @@ export default function AdminRequests() {
                     <div className="text-muted small">{request.city || "-"}</div>
                   </td>
                   <td>
-                    <select className="form-select form-select-sm" value={draft.status} onChange={(event) => setDraft(request.id, { status: event.target.value })}>
+                    <select className="form-select gc-admin-inline-select" value={draft.status} onChange={(event) => setDraft(request.id, { status: event.target.value })}>
                       {STATUSES.map((status) => (
                         <option key={status} value={status}>
                           {statusLabel(status)}
@@ -198,7 +203,7 @@ export default function AdminRequests() {
                   </td>
                   <td>
                     <select
-                      className="form-select form-select-sm"
+                      className="form-select gc-admin-inline-select"
                       value={draft.assigned_worker}
                       onChange={(event) => setDraft(request.id, { assigned_worker: Number(event.target.value) || "" })}
                     >
@@ -211,7 +216,7 @@ export default function AdminRequests() {
                     </select>
                   </td>
                   <td>
-                    <div className="d-flex gap-2">
+                    <div className="d-flex gap-2 gc-admin-inline-actions">
                       <button className="btn btn-outline-primary btn-sm" onClick={() => doAssign(request)} disabled={busy || loading}>
                         Назначить
                       </button>

@@ -299,6 +299,12 @@ export default function AdminUsers() {
           <span className="badge text-bg-light">Всего: {items.length}</span>
         </div>
 
+        <div className="gc-admin-inline-hint mb-3" data-hint="Поля ниже редактируются прямо в строке таблицы.">
+          <i className="bi bi-pencil-square" aria-hidden="true" />
+          Поля ниже редактируются прямо в строке таблицы.
+
+        </div>
+
         <input
           className="form-control mb-3"
           placeholder="Поиск по id, логину, имени, email, организации"
@@ -307,7 +313,7 @@ export default function AdminUsers() {
         />
 
         <div className="table-responsive">
-          <table className="table align-middle">
+          <table className="table align-middle gc-admin-table">
             <thead>
               <tr>
                 <th style={{ width: 70 }}>ID</th>
@@ -334,28 +340,28 @@ export default function AdminUsers() {
                     <td>{user.username}</td>
                     <td>
                       <input
-                        className="form-control form-control-sm"
+                        className="form-control gc-admin-inline-input"
                         value={draft.first_name}
                         onChange={(event) => setDraft(user.id, { first_name: event.target.value })}
                       />
                     </td>
                     <td>
                       <input
-                        className="form-control form-control-sm"
+                        className="form-control gc-admin-inline-input"
                         value={draft.last_name}
                         onChange={(event) => setDraft(user.id, { last_name: event.target.value })}
                       />
                     </td>
                     <td>
                       <input
-                        className="form-control form-control-sm"
+                        className="form-control gc-admin-inline-input"
                         value={draft.email}
                         onChange={(event) => setDraft(user.id, { email: event.target.value })}
                       />
                     </td>
                     <td>
                       <select
-                        className="form-select form-select-sm"
+                        className="form-select gc-admin-inline-select"
                         value={draft.role}
                         onChange={(event) => setDraft(user.id, { role: event.target.value })}
                       >
@@ -366,7 +372,7 @@ export default function AdminUsers() {
                     </td>
                     <td>
                       <select
-                        className="form-select form-select-sm"
+                        className="form-select gc-admin-inline-select"
                         value={draft.organization}
                         onChange={(event) =>
                           setDraft(user.id, { organization: event.target.value, department: "" })
@@ -380,7 +386,7 @@ export default function AdminUsers() {
                     </td>
                     <td>
                       <select
-                        className="form-select form-select-sm"
+                        className="form-select gc-admin-inline-select"
                         value={draft.department}
                         onChange={(event) => setDraft(user.id, { department: event.target.value })}
                       >
@@ -392,7 +398,7 @@ export default function AdminUsers() {
                     </td>
                     <td>
                       <input
-                        className="form-check-input"
+                        className="form-check-input gc-admin-inline-check"
                         type="checkbox"
                         checked={!!draft.is_active}
                         onChange={(event) => setDraft(user.id, { is_active: event.target.checked })}
@@ -400,7 +406,7 @@ export default function AdminUsers() {
                     </td>
                     <td>
                       <input
-                        className="form-control form-control-sm"
+                        className="form-control gc-admin-inline-input"
                         type="password"
                         placeholder="Оставьте пустым"
                         value={draft.password}
@@ -408,7 +414,7 @@ export default function AdminUsers() {
                       />
                     </td>
                     <td>
-                      <div className="d-flex gap-2">
+                      <div className="d-flex gap-2 gc-admin-inline-actions">
                         <button className="btn btn-outline-primary btn-sm" onClick={() => saveUser(user)} disabled={busy}>
                           Сохранить
                         </button>

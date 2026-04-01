@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { registerUser, loginUser } from "../api/auth";
 import Notice from "../components/Notice";
+import PasswordInput from "../components/PasswordInput";
 import { reverseGeocodeCity } from "../utils/geocoding";
 
 const CITY_ACCURACY_LIMIT_METERS = 5000;
@@ -96,7 +97,7 @@ export default function Register({ onDone }) {
         </div>
         <div className="col-md-6">
           <label className="form-label gc-muted">Пароль</label>
-          <input className="form-control gc-input" type="password" value={password} onChange={(e)=>setPassword(e.target.value)} />
+          <PasswordInput className="form-control gc-input" value={password} onChange={(e)=>setPassword(e.target.value)} />
         </div>
 
         <div className="col-12">

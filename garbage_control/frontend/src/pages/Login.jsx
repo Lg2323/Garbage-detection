@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { loginUser } from "../api/auth";
 import Notice from "../components/Notice";
+import PasswordInput from "../components/PasswordInput";
 
 export default function Login({ onDone }) {
   const [username, setUsername] = useState("");
@@ -43,9 +44,8 @@ export default function Login({ onDone }) {
         </div>
         <div>
           <label className="form-label gc-muted">Пароль</label>
-          <input
+          <PasswordInput
             className="form-control gc-input"
-            type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             placeholder="••••••••"
