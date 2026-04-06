@@ -4,6 +4,7 @@ import Notice from "../../components/Notice";
 import Pagination from "../../components/Pagination";
 import RequestFiltersPanel from "../../components/requests/RequestFiltersPanel";
 import { getAllRequests } from "../../api/coord";
+import useDebouncedValue from "../../hooks/useDebouncedValue";
 import { statusClass, statusLabel } from "../../ui/status";
 import { buildRequestQuery, createRequestFilters } from "../../utils/requestFilters";
 
@@ -19,6 +20,7 @@ export default function CoordRequests() {
       ordering: "created_at_desc",
     })
   );
+  const debouncedFilters = useDebouncedValue(filters);
 
   const load = async (nextFilters = filters) => {
     setMsg("");
@@ -34,8 +36,9 @@ export default function CoordRequests() {
   };
 
   useEffect(() => {
-    load(filters);
-  }, []);
+    setPage(1);
+    load(debouncedFilters);
+  }, [debouncedFilters]);
 
   useEffect(() => {
     setPage(1);
@@ -50,18 +53,9 @@ export default function CoordRequests() {
     setFilters((prev) => ({ ...prev, [field]: value }));
   };
 
-  const applyFilters = async () => {
+  const resetFilters = () => {
+    setFilters(createRequestFilters({ ordering: "created_at_desc" }));
     setPage(1);
-    await load(filters);
-  };
-
-  const resetFilters = async () => {
-    const nextFilters = createRequestFilters({
-      ordering: "created_at_desc",
-    });
-    setFilters(nextFilters);
-    setPage(1);
-    await load(nextFilters);
   };
 
   return (
@@ -77,7 +71,6 @@ export default function CoordRequests() {
       <RequestFiltersPanel
         value={filters}
         onChange={updateFilter}
-        onApply={applyFilters}
         onReset={resetFilters}
         loading={loading}
         showHandlingMode

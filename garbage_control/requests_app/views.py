@@ -31,7 +31,7 @@ from .models import (
     VerificationResult,
     create_status_history_entry,
 )
-from .permissions import IsAdminRole, IsCitizenOrAdmin, IsCoordinatorOrAdmin, IsOrgManagerOrAdmin, IsWorker
+from .permissions import IsAdminRole, IsCitizen, IsCoordinator, IsOrgManager, IsWorker
 from .serializers import (
     AdminSetStatusSerializer,
     AssignWorkerSerializer,
@@ -237,19 +237,19 @@ class RequestViewSet(ModelViewSet):
 
     def get_permissions(self):
         if self.action == "create":
-            return [IsAuthenticated(), IsCitizenOrAdmin()]
+            return [IsAuthenticated(), IsCitizen()]
 
-        if self.action in ("assign_worker", "return_to_work", "classify", "external_transfer"):
-            return [IsAuthenticated(), IsCoordinatorOrAdmin()]
+        if self.action in ("classify", "external_transfer", "return_to_work", "verify"):
+            return [IsAuthenticated(), IsCoordinator()]
 
         if self.action in ("organization_assign",):
-            return [IsAuthenticated(), IsOrgManagerOrAdmin()]
+            return [IsAuthenticated(), IsOrgManager()]
+
+        if self.action in ("assign_worker", "set_status"):
+            return [IsAuthenticated(), IsAdminRole()]
 
         if self.action in ("take_in_work", "upload_after_photo"):
             return [IsAuthenticated(), IsWorker()]
-
-        if self.action in ("set_status",):
-            return [IsAuthenticated(), IsAdminRole()]
 
         return super().get_permissions()
 
@@ -338,16 +338,7 @@ class RequestViewSet(ModelViewSet):
         data = ser.validated_data
 
         responsible_organization = data.get("responsible_organization")
-        responsible_department = data.get("responsible_department")
-        assigned_brigade = data.get("assigned_brigade")
         territory_type = data.get("territory_type")
-
-        if assigned_brigade and not responsible_department and assigned_brigade.department_id:
-            responsible_department = assigned_brigade.department
-        if responsible_department and not responsible_organization:
-            responsible_organization = responsible_department.organization
-        if assigned_brigade and not responsible_organization:
-            responsible_organization = assigned_brigade.organization
 
         handling_mode = data.get("handling_mode")
         if handling_mode is None and territory_type and territory_type.requires_external_transfer:
@@ -370,9 +361,7 @@ class RequestViewSet(ModelViewSet):
             update_fields.append("classification_comment")
 
         req.responsible_organization = responsible_organization
-        req.responsible_department = responsible_department
-        req.assigned_brigade = assigned_brigade
-        update_fields.extend(["responsible_organization", "responsible_department", "assigned_brigade"])
+        update_fields.append("responsible_organization")
 
         if req.status == Request.Status.CREATED:
             req.status = Request.Status.VERIFIED
@@ -380,14 +369,12 @@ class RequestViewSet(ModelViewSet):
 
         req.save(update_fields=list(dict.fromkeys(update_fields)))
 
-        if responsible_organization or responsible_department or assigned_brigade or req.classification_comment:
+        if responsible_organization or req.classification_comment:
             RequestAssignment.objects.create(
                 request=req,
                 assignment_type=RequestAssignment.AssignmentType.ROUTING,
                 assigned_by=request.user,
                 assigned_organization=responsible_organization,
-                assigned_department=responsible_department,
-                assigned_brigade=assigned_brigade,
                 comment=req.classification_comment or "Заявка классифицирована и маршрутизирована.",
             )
 
@@ -501,11 +488,10 @@ class RequestViewSet(ModelViewSet):
 
         previous_status = req.status
         req.assigned_worker = worker
-        req.coordinator = request.user
         req.handling_mode = Request.HandlingMode.CLEANUP
         if req.status in (Request.Status.CREATED, Request.Status.VERIFIED):
             req.status = Request.Status.VERIFIED
-        req.save(update_fields=["assigned_worker", "coordinator", "handling_mode", "status", "updated_at"])
+        req.save(update_fields=["assigned_worker", "handling_mode", "status", "updated_at"])
 
         RequestAssignment.objects.create(
             request=req,
@@ -725,20 +711,18 @@ class RequestViewSet(ModelViewSet):
         ser.is_valid(raise_exception=True)
 
         comment = ser.validated_data["comment"]
-        reassign_id = ser.validated_data.get("reassign_worker_id")
 
         previous_worker = req.assigned_worker
         new_worker = None
 
-        if reassign_id:
-            new_worker = self._get_scoped_worker_queryset(req).filter(id=reassign_id).first()
-            if not new_worker:
+        if False:
+            """
                 return Response({"error": "Исполнитель не найден"}, status=status.HTTP_404_NOT_FOUND)
             if not self._worker_matches_request_context(new_worker, req):
                 return Response(
                     {"error": "Исполнитель не соответствует организации, подразделению или бригаде заявки."},
                     status=status.HTTP_400_BAD_REQUEST,
-                )
+            """
 
         RequestRework.objects.create(
             request=req,
@@ -764,7 +748,7 @@ class RequestViewSet(ModelViewSet):
 
         previous_status = req.status
         req.status = Request.Status.IN_PROGRESS
-        req.save(update_fields=["assigned_worker", "status", "updated_at"])
+        req.save(update_fields=["status", "updated_at"])
 
         self._create_status_history_if_changed(
             req,
@@ -804,7 +788,7 @@ class RequestViewSet(ModelViewSet):
     def verify(self, request, pk=None):
         req = self.get_object()
 
-        if request.user.role not in ("COORDINATOR", "ADMIN"):
+        if request.user.role != "COORDINATOR":
             return Response({"error": "Нет прав на проверку"}, status=status.HTTP_403_FORBIDDEN)
 
         if req.status == Request.Status.TRANSFERRED:

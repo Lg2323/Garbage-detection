@@ -3,7 +3,6 @@ import { Link, useParams } from "react-router-dom";
 import Notice from "../../components/Notice";
 import RequestResponsibilityMap from "../../components/maps/RequestResponsibilityMap";
 import {
-  assignWorker,
   classifyRequest,
   externalTransferRequest,
   getRequest,
@@ -27,8 +26,6 @@ function buildClassificationForm(request) {
     ownership_type: request?.ownership_type ?? null,
     handling_mode: request?.handling_mode || "CLEANUP",
     responsible_organization: request?.responsible_organization ?? null,
-    responsible_department: request?.responsible_department ?? null,
-    assigned_brigade: request?.assigned_brigade ?? null,
     classification_comment: request?.classification_comment || "",
   };
 }
@@ -46,11 +43,9 @@ export default function CoordRequestDetail() {
   const { id } = useParams();
   const [requestItem, setRequestItem] = useState(null);
   const [options, setOptions] = useState(null);
-  const [workerId, setWorkerId] = useState("");
   const [classificationForm, setClassificationForm] = useState(buildClassificationForm(null));
   const [transferForm, setTransferForm] = useState(INITIAL_TRANSFER_FORM);
   const [returnComment, setReturnComment] = useState("");
-  const [reassignWorkerId, setReassignWorkerId] = useState("");
   const [msg, setMsg] = useState(null);
   const [busy, setBusy] = useState(false);
 
@@ -62,7 +57,6 @@ export default function CoordRequestDetail() {
     ]);
     setRequestItem(requestData);
     setOptions(optionsData);
-    setWorkerId(requestData?.assigned_worker || "");
     setClassificationForm(buildClassificationForm(requestData));
     setTransferForm((prev) => ({
       ...INITIAL_TRANSFER_FORM,
@@ -78,23 +72,6 @@ export default function CoordRequestDetail() {
       });
     });
   }, [id]);
-
-  const workers = useMemo(() => {
-    if (!options) return [];
-    let filtered = options.workers || [];
-    if (classificationForm.responsible_organization) {
-      filtered = filtered.filter(
-        (worker) => worker.organization_id === Number(classificationForm.responsible_organization)
-      );
-    }
-    if (classificationForm.responsible_department) {
-      filtered = filtered.filter(
-        (worker) =>
-          !worker.department_id || worker.department_id === Number(classificationForm.responsible_department)
-      );
-    }
-    return filtered;
-  }, [options, classificationForm.responsible_organization, classificationForm.responsible_department]);
 
   const municipalities = useMemo(() => {
     if (!options) return [];
@@ -112,53 +89,12 @@ export default function CoordRequestDetail() {
     );
   }, [options, classificationForm.municipality]);
 
-  const departments = useMemo(() => {
-    if (!options) return [];
-    if (!classificationForm.responsible_organization) return options.departments;
-    return options.departments.filter(
-      (department) => department.organization_id === Number(classificationForm.responsible_organization)
-    );
-  }, [options, classificationForm.responsible_organization]);
-
-  const brigades = useMemo(() => {
-    if (!options) return [];
-    let filtered = options.brigades;
-    if (classificationForm.responsible_organization) {
-      filtered = filtered.filter(
-        (brigade) => brigade.organization_id === Number(classificationForm.responsible_organization)
-      );
-    }
-    if (classificationForm.responsible_department) {
-      filtered = filtered.filter(
-        (brigade) => brigade.department_id === Number(classificationForm.responsible_department)
-      );
-    }
-    return filtered;
-  }, [options, classificationForm.responsible_organization, classificationForm.responsible_department]);
-
   const updateClassificationField = (field, value) => {
     setClassificationForm((prev) => ({ ...prev, [field]: value }));
   };
 
   const updateTransferField = (field, value) => {
     setTransferForm((prev) => ({ ...prev, [field]: value }));
-  };
-
-  const doAssign = async () => {
-    setMsg(null);
-    setBusy(true);
-    try {
-      await assignWorker(id, Number(workerId));
-      await load();
-      setMsg({ type: "success", text: "Исполнитель назначен." });
-    } catch (error) {
-      setMsg({
-        type: "danger",
-        text: "Ошибка назначения: " + (error.response?.data ? JSON.stringify(error.response.data) : error.message),
-      });
-    } finally {
-      setBusy(false);
-    }
   };
 
   const doClassify = async () => {
@@ -174,8 +110,6 @@ export default function CoordRequestDetail() {
         ownership_type: toNumberOrNull(classificationForm.ownership_type),
         handling_mode: classificationForm.handling_mode,
         responsible_organization: toNumberOrNull(classificationForm.responsible_organization),
-        responsible_department: toNumberOrNull(classificationForm.responsible_department),
-        assigned_brigade: toNumberOrNull(classificationForm.assigned_brigade),
         classification_comment: classificationForm.classification_comment.trim(),
       });
       await load();
@@ -242,10 +176,8 @@ export default function CoordRequestDetail() {
     try {
       await returnToWork(id, {
         comment: returnComment.trim(),
-        reassign_worker_id: reassignWorkerId ? Number(reassignWorkerId) : null,
       });
       setReturnComment("");
-      setReassignWorkerId("");
       await load();
       setMsg({ type: "success", text: "Заявка возвращена на доработку." });
     } catch (error) {
@@ -259,6 +191,7 @@ export default function CoordRequestDetail() {
   };
 
   const verification = requestItem?.verification || null;
+  const canOperate = options?.current_user?.role === "COORDINATOR";
 
   if (!requestItem || !options) {
     return <div className="card p-3">Загрузка...</div>;
@@ -315,8 +248,8 @@ export default function CoordRequestDetail() {
             </div>
             {requestItem.responsible_organization ? (
               <div className="text-muted small mb-3">
-                После маршрутизации основное распределение по бригаде и исполнителю должно идти через панель организации.
-                <Link className="ms-1" to="/org/requests">Открыть панель организации</Link>
+                После маршрутизации внутреннее распределение по подразделению, бригаде и исполнителю выполняет организация.
+                {canOperate && <Link className="ms-1" to="/org/requests">Открыть панель организации</Link>}
               </div>
             ) : (
               <div className="text-muted small mb-3">
@@ -324,31 +257,27 @@ export default function CoordRequestDetail() {
               </div>
             )}
 
-            <div className="fw-semibold mb-2">Прямое назначение исполнителя</div>
-            <div className="d-flex gap-2">
-              <select className="form-select" value={workerId} onChange={(event) => setWorkerId(event.target.value)}>
-                <option value="">Выберите исполнителя</option>
-                {workers.map((worker) => (
-                  <option key={worker.id} value={worker.id}>
-                    #{worker.id} {worker.username}
-                    {worker.organization__name ? ` • ${worker.organization__name}` : ""}
-                    {worker.department__name ? ` • ${worker.department__name}` : ""}
-                  </option>
-                ))}
-              </select>
-              <button className="btn btn-primary" onClick={doAssign} disabled={!workerId || busy}>
-                Назначить
-              </button>
+            <div className="fw-semibold mb-2">Внутреннее распределение</div>
+            <div className="text-muted small">
+              Координатор назначает только организацию. Подразделение, бригаду и исполнителя назначает менеджер организации.
             </div>
 
             <div className="gc-profile__divider" />
 
             <div className="fw-semibold mb-2">Контроль результата</div>
-            <button className="btn btn-outline-primary" onClick={doVerify} disabled={busy || !requestItem.after_photo}>
-              Запустить проверку
-            </button>
-            {!requestItem.after_photo && (
-              <div className="text-muted small mt-2">Фото результата еще не загружено исполнителем.</div>
+            {canOperate ? (
+              <>
+                <button className="btn btn-outline-primary" onClick={doVerify} disabled={busy || !requestItem.after_photo}>
+                  Запустить проверку
+                </button>
+                {!requestItem.after_photo && (
+                  <div className="text-muted small mt-2">Фото результата еще не загружено исполнителем.</div>
+                )}
+              </>
+            ) : (
+              <div className="text-muted small">
+                Администратор может просматривать заявку, но не выполняет операционные действия координатора.
+              </div>
             )}
           </div>
         </div>
@@ -411,185 +340,176 @@ export default function CoordRequestDetail() {
         <div className="col-lg-6">
           <div className="card p-3 h-100">
             <div className="fw-semibold mb-2">Фото до</div>
-            {requestItem.before_photo ? <img src={requestItem.before_photo} alt="before" className="img-fluid rounded" /> : <div className="text-muted">Нет фото</div>}
+            {requestItem.before_photo ? (
+              <img src={requestItem.before_photo} alt="before" className="img-fluid rounded" />
+            ) : (
+              <div className="text-muted">Нет фото</div>
+            )}
           </div>
         </div>
         <div className="col-lg-6">
           <div className="card p-3 h-100">
             <div className="fw-semibold mb-2">Фото после</div>
-            {requestItem.after_photo ? <img src={requestItem.after_photo} alt="after" className="img-fluid rounded" /> : <div className="text-muted">Нет фото</div>}
+            {requestItem.after_photo ? (
+              <img src={requestItem.after_photo} alt="after" className="img-fluid rounded" />
+            ) : (
+              <div className="text-muted">Нет фото</div>
+            )}
           </div>
         </div>
       </div>
 
-      <div className="card p-3">
-        <div className="fw-semibold mb-3">Классификация и маршрутизация</div>
-        <div className="row g-3">
-          <div className="col-lg-4">
-            <label className="form-label">Адрес</label>
-            <input className="form-control" value={classificationForm.address} onChange={(event) => updateClassificationField("address", event.target.value)} />
+      {canOperate ? (
+        <>
+          <div className="card p-3">
+            <div className="fw-semibold mb-3">Классификация и маршрутизация</div>
+            <div className="row g-3">
+              <div className="col-lg-4">
+                <label className="form-label">Адрес</label>
+                <input className="form-control" value={classificationForm.address} onChange={(event) => updateClassificationField("address", event.target.value)} />
+              </div>
+              <div className="col-lg-4">
+                <label className="form-label">Субъект РФ</label>
+                <select className="form-select" value={classificationForm.federal_subject ?? ""} onChange={(event) => updateClassificationField("federal_subject", event.target.value || null)}>
+                  <option value="">Не выбрано</option>
+                  {options.federal_subjects.map((subject) => (
+                    <option key={subject.id} value={subject.id}>{subject.name}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="col-lg-4">
+                <label className="form-label">Муниципалитет</label>
+                <select className="form-select" value={classificationForm.municipality ?? ""} onChange={(event) => updateClassificationField("municipality", event.target.value || null)}>
+                  <option value="">Не выбрано</option>
+                  {municipalities.map((municipality) => (
+                    <option key={municipality.id} value={municipality.id}>{municipality.name}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="col-lg-4">
+                <label className="form-label">Населенный пункт</label>
+                <select className="form-select" value={classificationForm.locality ?? ""} onChange={(event) => updateClassificationField("locality", event.target.value || null)}>
+                  <option value="">Не выбрано</option>
+                  {localities.map((locality) => (
+                    <option key={locality.id} value={locality.id}>{locality.name}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="col-lg-4">
+                <label className="form-label">Тип территории</label>
+                <select className="form-select" value={classificationForm.territory_type ?? ""} onChange={(event) => updateClassificationField("territory_type", event.target.value || null)}>
+                  <option value="">Не выбрано</option>
+                  {options.territory_types.map((territoryType) => (
+                    <option key={territoryType.id} value={territoryType.id}>{territoryType.name}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="col-lg-4">
+                <label className="form-label">Тип собственности</label>
+                <select className="form-select" value={classificationForm.ownership_type ?? ""} onChange={(event) => updateClassificationField("ownership_type", event.target.value || null)}>
+                  <option value="">Не выбрано</option>
+                  {options.ownership_types.map((ownershipType) => (
+                    <option key={ownershipType.id} value={ownershipType.id}>{ownershipType.name}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="col-lg-4">
+                <label className="form-label">Режим обработки</label>
+                <select className="form-select" value={classificationForm.handling_mode} onChange={(event) => updateClassificationField("handling_mode", event.target.value)}>
+                  {(options.choices?.handling_mode || []).map((mode) => (
+                    <option key={mode.value} value={mode.value}>{mode.label}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="col-lg-4">
+                <label className="form-label">Организация</label>
+                <select className="form-select" value={classificationForm.responsible_organization ?? ""} onChange={(event) => updateClassificationField("responsible_organization", event.target.value || null)}>
+                  <option value="">Не выбрано</option>
+                  {options.organizations.map((organization) => (
+                    <option key={organization.id} value={organization.id}>{organization.name}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="col-12">
+                <label className="form-label">Комментарий классификации</label>
+                <textarea className="form-control" rows={3} value={classificationForm.classification_comment} onChange={(event) => updateClassificationField("classification_comment", event.target.value)} />
+              </div>
+            </div>
+            <div className="d-flex justify-content-end mt-3">
+              <button className="btn btn-primary" onClick={doClassify} disabled={busy}>
+                Сохранить классификацию
+              </button>
+            </div>
           </div>
-          <div className="col-lg-4">
-            <label className="form-label">Субъект РФ</label>
-            <select className="form-select" value={classificationForm.federal_subject ?? ""} onChange={(event) => updateClassificationField("federal_subject", event.target.value || null)}>
-              <option value="">Не выбрано</option>
-              {options.federal_subjects.map((subject) => (
-                <option key={subject.id} value={subject.id}>{subject.name}</option>
-              ))}
-            </select>
-          </div>
-          <div className="col-lg-4">
-            <label className="form-label">Муниципалитет</label>
-            <select className="form-select" value={classificationForm.municipality ?? ""} onChange={(event) => updateClassificationField("municipality", event.target.value || null)}>
-              <option value="">Не выбрано</option>
-              {municipalities.map((municipality) => (
-                <option key={municipality.id} value={municipality.id}>{municipality.name}</option>
-              ))}
-            </select>
-          </div>
-          <div className="col-lg-4">
-            <label className="form-label">Населенный пункт</label>
-            <select className="form-select" value={classificationForm.locality ?? ""} onChange={(event) => updateClassificationField("locality", event.target.value || null)}>
-              <option value="">Не выбрано</option>
-              {localities.map((locality) => (
-                <option key={locality.id} value={locality.id}>{locality.name}</option>
-              ))}
-            </select>
-          </div>
-          <div className="col-lg-4">
-            <label className="form-label">Тип территории</label>
-            <select className="form-select" value={classificationForm.territory_type ?? ""} onChange={(event) => updateClassificationField("territory_type", event.target.value || null)}>
-              <option value="">Не выбрано</option>
-              {options.territory_types.map((territoryType) => (
-                <option key={territoryType.id} value={territoryType.id}>{territoryType.name}</option>
-              ))}
-            </select>
-          </div>
-          <div className="col-lg-4">
-            <label className="form-label">Тип собственности</label>
-            <select className="form-select" value={classificationForm.ownership_type ?? ""} onChange={(event) => updateClassificationField("ownership_type", event.target.value || null)}>
-              <option value="">Не выбрано</option>
-              {options.ownership_types.map((ownershipType) => (
-                <option key={ownershipType.id} value={ownershipType.id}>{ownershipType.name}</option>
-              ))}
-            </select>
-          </div>
-          <div className="col-lg-4">
-            <label className="form-label">Режим обработки</label>
-            <select className="form-select" value={classificationForm.handling_mode} onChange={(event) => updateClassificationField("handling_mode", event.target.value)}>
-              {(options.choices?.handling_mode || []).map((mode) => (
-                <option key={mode.value} value={mode.value}>{mode.label}</option>
-              ))}
-            </select>
-          </div>
-          <div className="col-lg-4">
-            <label className="form-label">Организация</label>
-            <select className="form-select" value={classificationForm.responsible_organization ?? ""} onChange={(event) => updateClassificationField("responsible_organization", event.target.value || null)}>
-              <option value="">Не выбрано</option>
-              {options.organizations.map((organization) => (
-                <option key={organization.id} value={organization.id}>{organization.name}</option>
-              ))}
-            </select>
-          </div>
-          <div className="col-lg-4">
-            <label className="form-label">Подразделение</label>
-            <select className="form-select" value={classificationForm.responsible_department ?? ""} onChange={(event) => updateClassificationField("responsible_department", event.target.value || null)}>
-              <option value="">Не выбрано</option>
-              {departments.map((department) => (
-                <option key={department.id} value={department.id}>{department.name}</option>
-              ))}
-            </select>
-          </div>
-          <div className="col-lg-4">
-            <label className="form-label">Бригада</label>
-            <select className="form-select" value={classificationForm.assigned_brigade ?? ""} onChange={(event) => updateClassificationField("assigned_brigade", event.target.value || null)}>
-              <option value="">Не выбрано</option>
-              {brigades.map((brigade) => (
-                <option key={brigade.id} value={brigade.id}>{brigade.name}</option>
-              ))}
-            </select>
-          </div>
-          <div className="col-12">
-            <label className="form-label">Комментарий классификации</label>
-            <textarea className="form-control" rows={3} value={classificationForm.classification_comment} onChange={(event) => updateClassificationField("classification_comment", event.target.value)} />
-          </div>
-        </div>
-        <div className="d-flex justify-content-end mt-3">
-          <button className="btn btn-primary" onClick={doClassify} disabled={busy}>
-            Сохранить классификацию
-          </button>
-        </div>
-      </div>
 
-      <div className="card p-3">
-        <div className="fw-semibold mb-3">Внешняя передача</div>
-        <div className="row g-3">
-          <div className="col-lg-4">
-            <label className="form-label">Организация-адресат</label>
-            <select className="form-select" value={transferForm.target_organization ?? ""} onChange={(event) => updateTransferField("target_organization", event.target.value || null)}>
-              <option value="">Не выбрано</option>
-              {options.organizations.map((organization) => (
-                <option key={organization.id} value={organization.id}>{organization.name}</option>
-              ))}
-            </select>
+          <div className="card p-3">
+            <div className="fw-semibold mb-3">Внешняя передача</div>
+            <div className="row g-3">
+              <div className="col-lg-4">
+                <label className="form-label">Организация-адресат</label>
+                <select className="form-select" value={transferForm.target_organization ?? ""} onChange={(event) => updateTransferField("target_organization", event.target.value || null)}>
+                  <option value="">Не выбрано</option>
+                  {options.organizations.map((organization) => (
+                    <option key={organization.id} value={organization.id}>{organization.name}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="col-lg-4">
+                <label className="form-label">Получатель текстом</label>
+                <input className="form-control" value={transferForm.recipient_name} onChange={(event) => updateTransferField("recipient_name", event.target.value)} />
+              </div>
+              <div className="col-lg-4">
+                <label className="form-label">Контакт получателя</label>
+                <input className="form-control" value={transferForm.recipient_contact} onChange={(event) => updateTransferField("recipient_contact", event.target.value)} />
+              </div>
+              <div className="col-lg-4">
+                <label className="form-label">Исходящий номер</label>
+                <input className="form-control" value={transferForm.outgoing_number} onChange={(event) => updateTransferField("outgoing_number", event.target.value)} />
+              </div>
+              <div className="col-12">
+                <label className="form-label">Основание передачи</label>
+                <textarea className="form-control" rows={3} value={transferForm.transfer_reason} onChange={(event) => updateTransferField("transfer_reason", event.target.value)} />
+              </div>
+              <div className="col-12">
+                <label className="form-label">Комментарий</label>
+                <textarea className="form-control" rows={2} value={transferForm.comment} onChange={(event) => updateTransferField("comment", event.target.value)} />
+              </div>
+            </div>
+            <div className="d-flex justify-content-end mt-3">
+              <button className="btn btn-outline-danger" onClick={doExternalTransfer} disabled={busy}>
+                Передать по принадлежности
+              </button>
+            </div>
           </div>
-          <div className="col-lg-4">
-            <label className="form-label">Получатель текстом</label>
-            <input className="form-control" value={transferForm.recipient_name} onChange={(event) => updateTransferField("recipient_name", event.target.value)} />
-          </div>
-          <div className="col-lg-4">
-            <label className="form-label">Контакт получателя</label>
-            <input className="form-control" value={transferForm.recipient_contact} onChange={(event) => updateTransferField("recipient_contact", event.target.value)} />
-          </div>
-          <div className="col-lg-4">
-            <label className="form-label">Исходящий номер</label>
-            <input className="form-control" value={transferForm.outgoing_number} onChange={(event) => updateTransferField("outgoing_number", event.target.value)} />
-          </div>
-          <div className="col-12">
-            <label className="form-label">Основание передачи</label>
-            <textarea className="form-control" rows={3} value={transferForm.transfer_reason} onChange={(event) => updateTransferField("transfer_reason", event.target.value)} />
-          </div>
-          <div className="col-12">
-            <label className="form-label">Комментарий</label>
-            <textarea className="form-control" rows={2} value={transferForm.comment} onChange={(event) => updateTransferField("comment", event.target.value)} />
-          </div>
-        </div>
-        <div className="d-flex justify-content-end mt-3">
-          <button className="btn btn-outline-danger" onClick={doExternalTransfer} disabled={busy}>
-            Передать по принадлежности
-          </button>
-        </div>
-      </div>
 
-      <div className="card p-3">
-        <div className="fw-semibold mb-3">Возврат на доработку</div>
-        <div className="row g-3">
-          <div className="col-12">
-            <textarea
-              className="form-control"
-              rows={3}
-              value={returnComment}
-              onChange={(event) => setReturnComment(event.target.value)}
-              placeholder="Что нужно исправить"
-            />
+          <div className="card p-3">
+            <div className="fw-semibold mb-3">Возврат на доработку</div>
+            <div className="row g-3">
+              <div className="col-12">
+                <textarea
+                  className="form-control"
+                  rows={3}
+                  value={returnComment}
+                  onChange={(event) => setReturnComment(event.target.value)}
+                  placeholder="Что нужно исправить"
+                />
+              </div>
+              <div className="col-lg-12 d-flex justify-content-end">
+                <button className="btn btn-outline-danger" onClick={doReturnToWork} disabled={busy}>
+                  Вернуть на доработку
+                </button>
+              </div>
+            </div>
           </div>
-          <div className="col-lg-6">
-            <select className="form-select" value={reassignWorkerId} onChange={(event) => setReassignWorkerId(event.target.value)}>
-              <option value="">Оставить текущего исполнителя</option>
-              {workers.map((worker) => (
-                <option key={worker.id} value={worker.id}>
-                  #{worker.id} {worker.username}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div className="col-lg-6 d-flex justify-content-end">
-            <button className="btn btn-outline-danger" onClick={doReturnToWork} disabled={busy}>
-              Вернуть на доработку
-            </button>
+        </>
+      ) : (
+        <div className="card p-3">
+          <div className="fw-semibold mb-2">Режим просмотра</div>
+          <div className="text-muted">
+            Администратор видит все данные заявки и историю, но не подменяет координатора в обычном процессе.
           </div>
         </div>
-      </div>
+      )}
 
       <div className="row g-3">
         <div className="col-xl-4">

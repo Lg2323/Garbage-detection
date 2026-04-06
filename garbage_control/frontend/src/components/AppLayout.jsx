@@ -2,10 +2,10 @@ import { Link } from "react-router-dom";
 import logo from "../assets/logo.png";
 
 export default function AppLayout({ authed, role, username, onLogout, pageKey, children }) {
-  const isCoordinator = role === "COORDINATOR" || role === "ADMIN";
+  const isCoordinator = role === "COORDINATOR";
   const isAdmin = role === "ADMIN";
   const isWorker = role === "WORKER";
-  const isOrgManager = role === "ORG_MANAGER" || role === "ADMIN";
+  const isOrgManager = role === "ORG_MANAGER";
 
   return (
     <>
@@ -41,7 +41,7 @@ export default function AppLayout({ authed, role, username, onLogout, pageKey, c
                     <Link className="gc-menu__item" to="/requests">Заявки</Link>
                     <Link className="gc-menu__item" to="/works">Выполненные работы</Link>
 
-                    {(role === "CITIZEN" || role === "ADMIN") && (
+                    {role === "CITIZEN" && (
                       <Link className="gc-menu__item gc-menu__item--accent" to="/requests/new">
                         Создать заявку
                       </Link>
@@ -54,7 +54,7 @@ export default function AppLayout({ authed, role, username, onLogout, pageKey, c
                       </>
                     )}
 
-                    {(isWorker || isAdmin) && (
+                    {isWorker && (
                       <Link className="gc-menu__item" to="/worker/requests">Панель исполнителя</Link>
                     )}
 

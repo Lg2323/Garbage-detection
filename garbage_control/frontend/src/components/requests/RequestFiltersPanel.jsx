@@ -7,7 +7,6 @@ import {
 export default function RequestFiltersPanel({
   value,
   onChange,
-  onApply,
   onReset,
   loading = false,
   searchPlaceholder = "Поиск по id, названию, адресу или городу",
@@ -21,13 +20,8 @@ export default function RequestFiltersPanel({
   sortOptions = REQUEST_SORT_OPTIONS,
   extraFields = null,
 }) {
-  const submit = (event) => {
-    event.preventDefault();
-    onApply();
-  };
-
   return (
-    <form className="gc-filter-panel mb-3" onSubmit={submit}>
+    <div className="gc-filter-panel mb-3">
       <div className="row g-2">
         <div className="col-xl-4 col-lg-6">
           <label className="gc-filter-panel__label">Поиск</label>
@@ -155,10 +149,8 @@ export default function RequestFiltersPanel({
         <button type="button" className="btn btn-outline-secondary" onClick={onReset} disabled={loading}>
           Сбросить
         </button>
-        <button type="submit" className="btn btn-primary" disabled={loading}>
-          {loading ? "..." : "Применить"}
-        </button>
+        {loading ? <span className="text-muted small">Обновление...</span> : null}
       </div>
-    </form>
+    </div>
   );
 }

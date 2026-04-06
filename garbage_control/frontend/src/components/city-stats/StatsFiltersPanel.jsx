@@ -18,7 +18,6 @@ export default function StatsFiltersPanel({
   value,
   filtersData,
   onChange,
-  onApply,
   onReset,
   loading = false,
 }) {
@@ -40,13 +39,7 @@ export default function StatsFiltersPanel({
   ];
 
   return (
-    <form
-      className="gc-filter-panel mb-3"
-      onSubmit={(event) => {
-        event.preventDefault();
-        onApply();
-      }}
-    >
+    <div className="gc-filter-panel mb-3">
       <div className="row g-2">
         <div className="col-xl-4 col-lg-6">
           <label className="gc-filter-panel__label">Поиск</label>
@@ -190,10 +183,8 @@ export default function StatsFiltersPanel({
         <button type="button" className="btn btn-outline-secondary" onClick={onReset} disabled={loading}>
           Сбросить
         </button>
-        <button type="submit" className="btn btn-primary" disabled={loading}>
-          {loading ? "Загрузка..." : "Применить"}
-        </button>
+        {loading ? <span className="text-muted small">Обновление...</span> : null}
       </div>
-    </form>
+    </div>
   );
 }

@@ -4,6 +4,7 @@ import Notice from "../../components/Notice";
 import Pagination from "../../components/Pagination";
 import RequestFiltersPanel from "../../components/requests/RequestFiltersPanel";
 import { assignWorker, listRequests, listWorkers, setRequestStatus } from "../../api/admin";
+import useDebouncedValue from "../../hooks/useDebouncedValue";
 import { handlingModeLabel, statusLabel } from "../../ui/status";
 import { buildRequestQuery, createRequestFilters } from "../../utils/requestFilters";
 
@@ -23,6 +24,7 @@ export default function AdminRequests() {
       ordering: "created_at_desc",
     })
   );
+  const debouncedFilters = useDebouncedValue(filters);
 
   const loadRequests = async (nextFilters = filters) => {
     setLoading(true);
@@ -48,8 +50,12 @@ export default function AdminRequests() {
 
   useEffect(() => {
     loadWorkers();
-    loadRequests(filters);
   }, []);
+
+  useEffect(() => {
+    setPage(1);
+    loadRequests(debouncedFilters);
+  }, [debouncedFilters]);
 
   useEffect(() => {
     setPage(1);
@@ -64,18 +70,9 @@ export default function AdminRequests() {
     setFilters((prev) => ({ ...prev, [field]: value }));
   };
 
-  const applyFilters = async () => {
+  const resetFilters = () => {
+    setFilters(createRequestFilters({ ordering: "created_at_desc" }));
     setPage(1);
-    await loadRequests(filters);
-  };
-
-  const resetFilters = async () => {
-    const nextFilters = createRequestFilters({
-      ordering: "created_at_desc",
-    });
-    setFilters(nextFilters);
-    setPage(1);
-    await loadRequests(nextFilters);
   };
 
   const setDraft = (id, patch) => {
@@ -150,7 +147,6 @@ export default function AdminRequests() {
       <RequestFiltersPanel
         value={filters}
         onChange={updateFilter}
-        onApply={applyFilters}
         onReset={resetFilters}
         loading={loading}
         showHandlingMode

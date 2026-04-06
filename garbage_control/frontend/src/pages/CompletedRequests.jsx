@@ -5,6 +5,7 @@ import Pagination from "../components/Pagination";
 import CompletedHeader from "../components/completed/CompletedHeader";
 import CompletedRequestCard from "../components/completed/CompletedRequestCard";
 import RequestFiltersPanel from "../components/requests/RequestFiltersPanel";
+import useDebouncedValue from "../hooks/useDebouncedValue";
 import {
   COMPLETED_SORT_OPTIONS,
   buildRequestQuery,
@@ -24,6 +25,7 @@ export default function CompletedRequests() {
       ordering: "updated_at_desc",
     })
   );
+  const debouncedFilters = useDebouncedValue(filters);
 
   const load = async (nextFilters = filters) => {
     setMsg("");
@@ -39,8 +41,9 @@ export default function CompletedRequests() {
   };
 
   useEffect(() => {
-    load(filters);
-  }, []);
+    setPage(1);
+    load(debouncedFilters);
+  }, [debouncedFilters]);
 
   useEffect(() => {
     setPage(1);
@@ -59,18 +62,9 @@ export default function CompletedRequests() {
     setFilters((prev) => ({ ...prev, [field]: value }));
   };
 
-  const applyFilters = async () => {
+  const resetFilters = () => {
+    setFilters(createRequestFilters({ ordering: "updated_at_desc" }));
     setPage(1);
-    await load(filters);
-  };
-
-  const resetFilters = async () => {
-    const nextFilters = createRequestFilters({
-      ordering: "updated_at_desc",
-    });
-    setFilters(nextFilters);
-    setPage(1);
-    await load(nextFilters);
   };
 
   return (
@@ -80,7 +74,6 @@ export default function CompletedRequests() {
       <RequestFiltersPanel
         value={filters}
         onChange={updateFilter}
-        onApply={applyFilters}
         onReset={resetFilters}
         loading={loading}
         showStatus={false}

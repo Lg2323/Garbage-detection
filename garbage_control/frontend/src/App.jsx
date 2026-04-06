@@ -86,7 +86,7 @@ export default function App() {
         <Route
           path="/requests/new"
           element={
-            <RoleGuard authed={authed} role={me?.role} allow={["CITIZEN", "ADMIN"]}>
+            <RoleGuard authed={authed} role={me?.role} allow={["CITIZEN"]}>
               <CreateRequest />
             </RoleGuard>
           }
@@ -95,7 +95,7 @@ export default function App() {
         <Route
           path="/coord/requests"
           element={
-            <RoleGuard authed={authed} role={me?.role} allow={["COORDINATOR", "ADMIN"]}>
+            <RoleGuard authed={authed} role={me?.role} allow={["COORDINATOR"]}>
               <CoordinatorRequests />
             </RoleGuard>
           }
@@ -103,7 +103,7 @@ export default function App() {
         <Route
           path="/coord/map"
           element={
-            <RoleGuard authed={authed} role={me?.role} allow={["COORDINATOR", "ADMIN"]}>
+            <RoleGuard authed={authed} role={me?.role} allow={["COORDINATOR"]}>
               <CoordMap />
             </RoleGuard>
           }
@@ -120,7 +120,7 @@ export default function App() {
         <Route
           path="/worker/requests"
           element={
-            <RoleGuard authed={authed} role={me?.role} allow={["WORKER", "ADMIN"]}>
+            <RoleGuard authed={authed} role={me?.role} allow={["WORKER"]}>
               <WorkerRequests />
             </RoleGuard>
           }
@@ -128,7 +128,7 @@ export default function App() {
         <Route
           path="/worker/requests/:id"
           element={
-            <RoleGuard authed={authed} role={me?.role} allow={["WORKER", "ADMIN"]}>
+            <RoleGuard authed={authed} role={me?.role} allow={["WORKER"]}>
               <WorkerRequestDetail />
             </RoleGuard>
           }
@@ -137,7 +137,7 @@ export default function App() {
         <Route
           path="/org/requests"
           element={
-            <RoleGuard authed={authed} role={me?.role} allow={["ORG_MANAGER", "ADMIN"]}>
+            <RoleGuard authed={authed} role={me?.role} allow={["ORG_MANAGER"]}>
               <OrganizationRequests />
             </RoleGuard>
           }
@@ -145,7 +145,7 @@ export default function App() {
         <Route
           path="/org/requests/:id"
           element={
-            <RoleGuard authed={authed} role={me?.role} allow={["ORG_MANAGER", "ADMIN"]}>
+            <RoleGuard authed={authed} role={me?.role} allow={["ORG_MANAGER"]}>
               <OrganizationRequestDetail />
             </RoleGuard>
           }

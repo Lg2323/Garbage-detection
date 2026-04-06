@@ -271,8 +271,6 @@ class RequestWorkflowApiTests(APITestCase):
                 "ownership_type": self.ownership_type.id,
                 "handling_mode": Request.HandlingMode.CLEANUP,
                 "responsible_organization": self.organization.id,
-                "responsible_department": self.department.id,
-                "assigned_brigade": self.brigade.id,
                 "classification_comment": "Закрепить за северным участком.",
             },
             format="json",
@@ -282,8 +280,8 @@ class RequestWorkflowApiTests(APITestCase):
         request_obj.refresh_from_db()
         self.assertEqual(request_obj.status, Request.Status.VERIFIED)
         self.assertEqual(request_obj.responsible_organization, self.organization)
-        self.assertEqual(request_obj.responsible_department, self.department)
-        self.assertEqual(request_obj.assigned_brigade, self.brigade)
+        self.assertIsNone(request_obj.responsible_department)
+        self.assertIsNone(request_obj.assigned_brigade)
         self.assertTrue(
             RequestAssignment.objects.filter(
                 request=request_obj,
@@ -309,6 +307,22 @@ class RequestWorkflowApiTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         returned_ids = {item["id"] for item in response.data}
         self.assertEqual(returned_ids, {own_request.id})
+
+    def test_coordinator_cannot_assign_worker_directly(self):
+        request_obj = self.create_request(
+            status_value=Request.Status.VERIFIED,
+            responsible_organization=self.organization,
+            responsible_department=self.department,
+            assigned_brigade=self.brigade,
+        )
+
+        response = self.coordinator_client.post(
+            f"/api/requests/{request_obj.id}/assign_worker/",
+            {"worker_id": self.worker.id},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
     def test_org_manager_can_assign_worker_inside_his_organization(self):
         request_obj = self.create_request(

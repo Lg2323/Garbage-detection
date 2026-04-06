@@ -508,7 +508,6 @@ class AdminSetStatusSerializer(serializers.Serializer):
 
 class ReturnToWorkSerializer(serializers.Serializer):
     comment = serializers.CharField(min_length=5, max_length=2000)
-    reassign_worker_id = serializers.IntegerField(required=False, allow_null=True, min_value=1)
 
 
 class ClassifyRequestSerializer(serializers.Serializer):
@@ -544,25 +543,12 @@ class ClassifyRequestSerializer(serializers.Serializer):
         required=False,
         allow_null=True,
     )
-    responsible_department = serializers.PrimaryKeyRelatedField(
-        queryset=Department.objects.filter(is_active=True),
-        required=False,
-        allow_null=True,
-    )
-    assigned_brigade = serializers.PrimaryKeyRelatedField(
-        queryset=Brigade.objects.filter(is_active=True),
-        required=False,
-        allow_null=True,
-    )
     classification_comment = serializers.CharField(required=False, allow_blank=True, max_length=2000)
 
     def validate(self, attrs):
         federal_subject = attrs.get("federal_subject")
         municipality = attrs.get("municipality")
         locality = attrs.get("locality")
-        organization = attrs.get("responsible_organization")
-        department = attrs.get("responsible_department")
-        brigade = attrs.get("assigned_brigade")
 
         if municipality and federal_subject and municipality.federal_subject_id != federal_subject.id:
             raise serializers.ValidationError("Муниципалитет не относится к выбранному субъекту РФ.")
@@ -573,13 +559,13 @@ class ClassifyRequestSerializer(serializers.Serializer):
         if locality and federal_subject and locality.municipality.federal_subject_id != federal_subject.id:
             raise serializers.ValidationError("Населённый пункт не относится к выбранному субъекту РФ.")
 
-        if department and organization and department.organization_id != organization.id:
+        if False:
             raise serializers.ValidationError("Подразделение не относится к выбранной организации.")
 
-        if brigade and organization and brigade.organization_id != organization.id:
+        if False:
             raise serializers.ValidationError("Бригада не относится к выбранной организации.")
 
-        if brigade and department and brigade.department_id and brigade.department_id != department.id:
+        if False:
             raise serializers.ValidationError("Бригада не относится к выбранному подразделению.")
 
         return attrs

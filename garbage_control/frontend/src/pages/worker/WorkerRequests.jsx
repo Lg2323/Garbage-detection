@@ -5,6 +5,7 @@ import Notice from "../../components/Notice";
 import Pagination from "../../components/Pagination";
 import RequestFiltersPanel from "../../components/requests/RequestFiltersPanel";
 import { getRequests, takeInWork, uploadAfterPhoto } from "../../api/requests";
+import useDebouncedValue from "../../hooks/useDebouncedValue";
 import { statusClass, statusLabel } from "../../ui/status";
 import { buildRequestQuery, createRequestFilters } from "../../utils/requestFilters";
 
@@ -22,6 +23,7 @@ export default function WorkerRequests() {
       ordering: "created_at_desc",
     })
   );
+  const debouncedFilters = useDebouncedValue(filters);
 
   const load = async (nextFilters = filters) => {
     setMsg(null);
@@ -40,8 +42,9 @@ export default function WorkerRequests() {
   };
 
   useEffect(() => {
-    load(filters);
-  }, []);
+    setPage(1);
+    load(debouncedFilters);
+  }, [debouncedFilters]);
 
   useEffect(() => {
     setPage(1);
@@ -56,18 +59,9 @@ export default function WorkerRequests() {
     setFilters((prev) => ({ ...prev, [field]: value }));
   };
 
-  const applyFilters = async () => {
+  const resetFilters = () => {
+    setFilters(createRequestFilters({ ordering: "created_at_desc" }));
     setPage(1);
-    await load(filters);
-  };
-
-  const resetFilters = async () => {
-    const nextFilters = createRequestFilters({
-      ordering: "created_at_desc",
-    });
-    setFilters(nextFilters);
-    setPage(1);
-    await load(nextFilters);
   };
 
   const setBusyFor = (id, value) => {
@@ -130,7 +124,6 @@ export default function WorkerRequests() {
       <RequestFiltersPanel
         value={filters}
         onChange={updateFilter}
-        onApply={applyFilters}
         onReset={resetFilters}
         loading={loading}
         showHandlingMode

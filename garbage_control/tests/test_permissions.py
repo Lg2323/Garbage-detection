@@ -71,8 +71,6 @@ def test_coordinator_can_classify_request(
     territory_type,
     ownership_type,
     organization,
-    department,
-    brigade,
 ):
     request_obj = create_request()
     client = make_client(coordinator)
@@ -88,8 +86,6 @@ def test_coordinator_can_classify_request(
             "ownership_type": ownership_type.id,
             "handling_mode": Request.HandlingMode.CLEANUP,
             "responsible_organization": organization.id,
-            "responsible_department": department.id,
-            "assigned_brigade": brigade.id,
             "classification_comment": "Classified by coordinator.",
         },
         format="json",
@@ -99,8 +95,34 @@ def test_coordinator_can_classify_request(
     request_obj.refresh_from_db()
     assert request_obj.status == Request.Status.VERIFIED
     assert request_obj.responsible_organization == organization
-    assert request_obj.responsible_department == department
-    assert request_obj.assigned_brigade == brigade
+    assert request_obj.responsible_department is None
+    assert request_obj.assigned_brigade is None
+
+
+def test_coordinator_cannot_assign_worker_directly(
+    coordinator,
+    worker,
+    make_client,
+    create_request,
+    organization,
+    department,
+    brigade,
+):
+    request_obj = create_request(
+        status=Request.Status.VERIFIED,
+        responsible_organization=organization,
+        responsible_department=department,
+        assigned_brigade=brigade,
+    )
+    client = make_client(coordinator)
+
+    response = client.post(
+        f"/api/requests/{request_obj.id}/assign_worker/",
+        {"worker_id": worker.id},
+        format="json",
+    )
+
+    assert response.status_code == status.HTTP_403_FORBIDDEN
 
 
 def test_org_manager_can_assign_inside_his_organization(

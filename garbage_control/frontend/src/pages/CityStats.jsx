@@ -7,6 +7,7 @@ import StatsPieChart from "../components/city-stats/StatsPieChart";
 import StatsStatusList from "../components/city-stats/StatsStatusList";
 import StatsSummaryCards from "../components/city-stats/StatsSummaryCards";
 import StatsTimelineChart from "../components/city-stats/StatsTimelineChart";
+import useDebouncedValue from "../hooks/useDebouncedValue";
 import { HANDLING_MODE_LABELS, STATUS_LABELS, handlingModeLabel, statusLabel } from "../ui/status";
 
 const INITIAL_FILTERS = {
@@ -125,6 +126,7 @@ export default function CityStats() {
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [msg, setMsg] = useState("");
   const [loading, setLoading] = useState(false);
+  const debouncedFilters = useDebouncedValue(filters);
 
   const load = async (nextFilters = filters) => {
     setMsg("");
@@ -140,8 +142,8 @@ export default function CityStats() {
   };
 
   useEffect(() => {
-    load(INITIAL_FILTERS);
-  }, []);
+    load(debouncedFilters);
+  }, [debouncedFilters]);
 
   const filtersData = useMemo(() => {
     const available = data?.available_filters || {};
@@ -194,13 +196,8 @@ export default function CityStats() {
     setFilters((prev) => ({ ...prev, [field]: value }));
   };
 
-  const applyFilters = async () => {
-    await load(filters);
-  };
-
-  const resetFilters = async () => {
+  const resetFilters = () => {
     setFilters(INITIAL_FILTERS);
-    await load(INITIAL_FILTERS);
   };
 
   return (
@@ -233,7 +230,6 @@ export default function CityStats() {
           value={filters}
           filtersData={filtersData}
           onChange={updateFilter}
-          onApply={applyFilters}
           onReset={resetFilters}
           loading={loading}
         />

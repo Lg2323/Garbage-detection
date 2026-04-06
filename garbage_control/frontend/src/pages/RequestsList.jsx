@@ -6,6 +6,7 @@ import RequestFiltersPanel from "../components/requests/RequestFiltersPanel";
 import RequestsHeader from "../components/requests/RequestsHeader";
 import RequestsTable from "../components/requests/RequestsTable";
 import RequestCreateModal from "../components/requests/RequestCreateModal";
+import useDebouncedValue from "../hooks/useDebouncedValue";
 import { reverseGeocodeLocation } from "../utils/geocoding";
 import { buildRequestQuery, createRequestFilters } from "../utils/requestFilters";
 
@@ -26,6 +27,7 @@ export default function RequestsList() {
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(false);
   const [filters, setFilters] = useState(() => createRequestFilters());
+  const debouncedFilters = useDebouncedValue(filters);
 
   const detectCity = () => {
     if (!navigator.geolocation) {
@@ -80,8 +82,9 @@ export default function RequestsList() {
   };
 
   useEffect(() => {
-    loadRequests(filters);
-  }, []);
+    setPage(1);
+    loadRequests(debouncedFilters);
+  }, [debouncedFilters]);
 
   useEffect(() => {
     setPage(1);
@@ -101,16 +104,9 @@ export default function RequestsList() {
     setFilters((prev) => ({ ...prev, [field]: value }));
   };
 
-  const applyFilters = async () => {
+  const resetFilters = () => {
+    setFilters(createRequestFilters());
     setPage(1);
-    await loadRequests(filters);
-  };
-
-  const resetFilters = async () => {
-    const nextFilters = createRequestFilters();
-    setFilters(nextFilters);
-    setPage(1);
-    await loadRequests(nextFilters);
   };
 
   const submit = async () => {
@@ -194,7 +190,6 @@ export default function RequestsList() {
       <RequestFiltersPanel
         value={filters}
         onChange={updateFilter}
-        onApply={applyFilters}
         onReset={resetFilters}
         loading={loading}
         searchPlaceholder="Поиск по id, названию, адресу или городу"

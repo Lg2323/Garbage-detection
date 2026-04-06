@@ -42,6 +42,7 @@ def test_create_request_runs_ai_precheck_and_creates_verification(citizen, make_
 def test_full_request_workflow_completes_request(
     citizen,
     coordinator,
+    org_manager,
     worker,
     make_client,
     image_file,
@@ -56,6 +57,7 @@ def test_full_request_workflow_completes_request(
 ):
     citizen_client = make_client(citizen)
     coordinator_client = make_client(coordinator)
+    org_manager_client = make_client(org_manager)
     worker_client = make_client(worker)
 
     with patch("requests_app.serializers.detect_city_by_coordinates", return_value="Almetyevsk"), patch(
@@ -87,15 +89,18 @@ def test_full_request_workflow_completes_request(
             "ownership_type": ownership_type.id,
             "handling_mode": Request.HandlingMode.CLEANUP,
             "responsible_organization": organization.id,
-            "responsible_department": department.id,
-            "assigned_brigade": brigade.id,
             "classification_comment": "Route request to cleanup brigade.",
         },
         format="json",
     )
-    assign_response = coordinator_client.post(
-        f"/api/requests/{request_id}/assign_worker/",
-        {"worker_id": worker.id},
+    org_assign_response = org_manager_client.post(
+        f"/api/requests/{request_id}/organization-assign/",
+        {
+            "responsible_department": department.id,
+            "assigned_brigade": brigade.id,
+            "assigned_worker": worker.id,
+            "comment": "Assign cleanup crew.",
+        },
         format="json",
     )
     take_response = worker_client.post(f"/api/requests/{request_id}/take_in_work/")
@@ -124,7 +129,7 @@ def test_full_request_workflow_completes_request(
 
     assert create_response.status_code == status.HTTP_201_CREATED
     assert classify_response.status_code == status.HTTP_200_OK
-    assert assign_response.status_code == status.HTTP_200_OK
+    assert org_assign_response.status_code == status.HTTP_200_OK
     assert take_response.status_code == status.HTTP_200_OK
     assert upload_response.status_code == status.HTTP_200_OK
     assert verify_response.status_code == status.HTTP_200_OK
