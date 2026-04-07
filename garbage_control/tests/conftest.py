@@ -249,6 +249,19 @@ def org_manager(db, password, organization, department):
 
 
 @pytest.fixture
+def department_manager(db, password, organization, department):
+    return User.objects.create_user(
+        username="department_manager_user",
+        email="department-manager@example.com",
+        password=password,
+        role=User.Role.DEPARTMENT_MANAGER,
+        city="Almetyevsk",
+        organization=organization,
+        department=department,
+    )
+
+
+@pytest.fixture
 def brigade(db, organization, department, worker):
     brigade = Brigade.objects.create(
         organization=organization,

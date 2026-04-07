@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { useParams } from "react-router-dom";
 import Notice from "../../components/Notice";
 import RequestResponsibilityMap from "../../components/maps/RequestResponsibilityMap";
 import {
@@ -11,6 +11,7 @@ import {
   verifyRequest,
 } from "../../api/requests";
 import { handlingModeLabel, statusClass, statusLabel } from "../../ui/status";
+import { formatApiError } from "../../utils/apiErrors";
 
 function toNumberOrNull(value) {
   return value === "" || value === null || value === undefined ? null : Number(value);
@@ -68,7 +69,7 @@ export default function CoordRequestDetail() {
     load().catch((error) => {
       setMsg({
         type: "danger",
-        text: "Ошибка: " + (error.response?.data ? JSON.stringify(error.response.data) : error.message),
+        text: formatApiError(error, "Ошибка загрузки заявки."),
       });
     });
   }, [id]);
@@ -117,7 +118,7 @@ export default function CoordRequestDetail() {
     } catch (error) {
       setMsg({
         type: "danger",
-        text: "Ошибка классификации: " + (error.response?.data ? JSON.stringify(error.response.data) : error.message),
+        text: formatApiError(error, "Ошибка классификации."),
       });
     } finally {
       setBusy(false);
@@ -142,7 +143,7 @@ export default function CoordRequestDetail() {
     } catch (error) {
       setMsg({
         type: "danger",
-        text: "Ошибка внешней передачи: " + (error.response?.data ? JSON.stringify(error.response.data) : error.message),
+        text: formatApiError(error, "Ошибка внешней передачи."),
       });
     } finally {
       setBusy(false);
@@ -159,7 +160,7 @@ export default function CoordRequestDetail() {
     } catch (error) {
       setMsg({
         type: "danger",
-        text: "Ошибка проверки: " + (error.response?.data ? JSON.stringify(error.response.data) : error.message),
+        text: formatApiError(error, "Ошибка проверки."),
       });
     } finally {
       setBusy(false);
@@ -183,7 +184,7 @@ export default function CoordRequestDetail() {
     } catch (error) {
       setMsg({
         type: "danger",
-        text: "Ошибка возврата: " + (error.response?.data ? JSON.stringify(error.response.data) : error.message),
+        text: formatApiError(error, "Ошибка возврата в работу."),
       });
     } finally {
       setBusy(false);
@@ -248,8 +249,7 @@ export default function CoordRequestDetail() {
             </div>
             {requestItem.responsible_organization ? (
               <div className="text-muted small mb-3">
-                После маршрутизации внутреннее распределение по подразделению, бригаде и исполнителю выполняет организация.
-                {canOperate && <Link className="ms-1" to="/org/requests">Открыть панель организации</Link>}
+                После маршрутизации внутреннее распределение по подразделению, бригаде и исполнителю выполняют руководитель организации и руководитель подразделения.
               </div>
             ) : (
               <div className="text-muted small mb-3">

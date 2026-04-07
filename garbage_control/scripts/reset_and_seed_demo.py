@@ -212,6 +212,17 @@ def run() -> None:
         ("org_kazan_service", "Линар", "Багаутдинов", "ORG_MANAGER", "Казань", "+7-905-100-00-07", False, False),
         ("org_kazan_contractor", "Альберт", "Саматов", "ORG_MANAGER", "Казань", "+7-905-100-00-08", False, False),
         ("org_moscow_service", "Игорь", "Пахомов", "ORG_MANAGER", "Москва", "+7-905-100-00-09", False, False),
+        ("org_tat_road_service", "Ринат", "Галеев", "ORG_MANAGER", "Альметьевск", "+7-905-100-00-10", False, False),
+        ("org_moscow_roads", "Владимир", "Кузнецов", "ORG_MANAGER", "Москва", "+7-905-100-00-17", False, False),
+        ("dept_almet_north", "Артур", "Миннуллин", "DEPARTMENT_MANAGER", "Альметьевск", "+7-905-100-01-01", False, False),
+        ("dept_almet_center", "Руслан", "Нуриев", "DEPARTMENT_MANAGER", "Альметьевск", "+7-905-100-01-02", False, False),
+        ("dept_almet_industrial", "Тимур", "Файзуллин", "DEPARTMENT_MANAGER", "Альметьевск", "+7-905-100-01-03", False, False),
+        ("dept_kazan_center", "Айрат", "Сафин", "DEPARTMENT_MANAGER", "Казань", "+7-905-100-01-04", False, False),
+        ("dept_kazan_embankment", "Марат", "Закиров", "DEPARTMENT_MANAGER", "Казань", "+7-905-100-01-05", False, False),
+        ("dept_moscow_center", "Дмитрий", "Орлов", "DEPARTMENT_MANAGER", "Москва", "+7-905-100-01-06", False, False),
+        ("dept_moscow_yard", "Павел", "Ершов", "DEPARTMENT_MANAGER", "Москва", "+7-905-100-01-07", False, False),
+        ("dept_tat_road_patrol", "Ильяс", "Гарифуллин", "DEPARTMENT_MANAGER", "Альметьевск", "+7-905-100-01-08", False, False),
+        ("dept_moscow_roads_cao", "Александр", "Лебедев", "DEPARTMENT_MANAGER", "Москва", "+7-905-100-01-09", False, False),
         ("almet_worker_1", "Олег", "Петров", "WORKER", "Альметьевск", "+7-905-100-00-11", False, False),
         ("almet_worker_2", "Ильдар", "Шакиров", "WORKER", "Альметьевск", "+7-905-100-00-12", False, False),
         ("almet_worker_3", "Денис", "Гордеев", "WORKER", "Альметьевск", "+7-905-100-00-13", False, False),
@@ -225,6 +236,10 @@ def run() -> None:
         ("moscow_worker_1", "Сергей", "Крылов", "WORKER", "Москва", "+7-905-100-00-31", False, False),
         ("moscow_worker_2", "Алексей", "Руднев", "WORKER", "Москва", "+7-905-100-00-32", False, False),
         ("moscow_yard_1", "Никита", "Поляков", "WORKER", "Москва", "+7-905-100-00-33", False, False),
+        ("tat_road_worker_1", "Ильнур", "Набиуллин", "WORKER", "Альметьевск", "+7-905-100-00-41", False, False),
+        ("tat_road_worker_2", "Рамис", "Салихов", "WORKER", "Альметьевск", "+7-905-100-00-42", False, False),
+        ("moscow_road_worker_1", "Константин", "Жуков", "WORKER", "Москва", "+7-905-100-00-43", False, False),
+        ("moscow_road_worker_2", "Иван", "Соколов", "WORKER", "Москва", "+7-905-100-00-44", False, False),
         ("citizen_aliya", "Алия", "Ибрагимова", "CITIZEN", "Альметьевск", "+7-905-200-00-01", False, False),
         ("citizen_timur", "Тимур", "Вахитов", "CITIZEN", "Альметьевск", "+7-905-200-00-02", False, False),
         ("citizen_ilnur", "Ильнур", "Закиров", "CITIZEN", "Нижняя Мактама", "+7-905-200-00-03", False, False),
@@ -417,12 +432,14 @@ def run() -> None:
         ("almet_north", "almet_service", None, "Северный участок", "ALM-N", Department.DepartmentType.TERRITORIAL),
         ("almet_center", "almet_service", None, "Центральный участок", "ALM-C", Department.DepartmentType.TERRITORIAL),
         ("almet_industrial", "almet_contractor", None, "Промышленный участок", "ALM-I", Department.DepartmentType.TERRITORIAL),
+        ("tat_road_patrol", "tat_road_service", None, "Дорожно-эксплуатационный участок", "TRD-1", Department.DepartmentType.TERRITORIAL),
         ("kazan_dispatch", "kazan_service", None, "Диспетчерская смена", "KZN-DISP", Department.DepartmentType.DISPATCH),
         ("kazan_center", "kazan_service", None, "Центральный сектор", "KZN-C", Department.DepartmentType.TERRITORIAL),
         ("kazan_embankment", "kazan_contractor", None, "Набережная и береговая линия", "KZN-W", Department.DepartmentType.TERRITORIAL),
         ("moscow_dispatch", "moscow_service", None, "Единая диспетчерская", "MSK-DISP", Department.DepartmentType.DISPATCH),
         ("moscow_center", "moscow_service", None, "Центральный сектор", "MSK-C", Department.DepartmentType.TERRITORIAL),
         ("moscow_yard", "moscow_service", None, "Дворовые территории", "MSK-Y", Department.DepartmentType.CLEANUP),
+        ("moscow_roads_cao", "moscow_roads", None, "Центральный дорожный участок", "MRD-CAO", Department.DepartmentType.TERRITORIAL),
     ]
 
     departments = {}
@@ -439,10 +456,12 @@ def run() -> None:
         ("almet_north_team", "almet_service", "almet_north", "Бригада Север-1", Brigade.BrigadeType.CLEANUP, "almet_worker_1", ["almet_worker_1", "almet_worker_2"]),
         ("almet_center_team", "almet_service", "almet_center", "Бригада Центр-1", Brigade.BrigadeType.CLEANUP, "almet_worker_3", ["almet_worker_3", "almet_worker_4"]),
         ("almet_industry_team", "almet_contractor", "almet_industrial", "Индустриальная бригада", Brigade.BrigadeType.CONTRACTOR, "almet_contractor_1", ["almet_contractor_1", "almet_contractor_2"]),
+        ("tat_road_team", "tat_road_service", "tat_road_patrol", "Дорожная бригада Восток", Brigade.BrigadeType.MOBILE, "tat_road_worker_1", ["tat_road_worker_1", "tat_road_worker_2"]),
         ("kazan_center_team", "kazan_service", "kazan_center", "Бригада Центр-Казань", Brigade.BrigadeType.CLEANUP, "kazan_worker_1", ["kazan_worker_1", "kazan_worker_2"]),
         ("kazan_embankment_team", "kazan_contractor", "kazan_embankment", "Береговая бригада", Brigade.BrigadeType.CONTRACTOR, "kazan_contractor_1", ["kazan_contractor_1", "kazan_contractor_2"]),
         ("moscow_center_team", "moscow_service", "moscow_center", "Бригада Тверская-1", Brigade.BrigadeType.CLEANUP, "moscow_worker_1", ["moscow_worker_1", "moscow_worker_2"]),
         ("moscow_yard_team", "moscow_service", "moscow_yard", "Дворовая бригада", Brigade.BrigadeType.MOBILE, "moscow_yard_1", ["moscow_yard_1"]),
+        ("moscow_roads_team", "moscow_roads", "moscow_roads_cao", "Дорожная бригада ЦАО", Brigade.BrigadeType.MOBILE, "moscow_road_worker_1", ["moscow_road_worker_1", "moscow_road_worker_2"]),
     ]
 
     brigades = {}
@@ -460,9 +479,20 @@ def run() -> None:
     user_affiliations = {
         "org_almet_service": ("almet_service", "almet_dispatch"),
         "org_almet_contractor": ("almet_contractor", "almet_industrial"),
+        "org_tat_road_service": ("tat_road_service", "tat_road_patrol"),
         "org_kazan_service": ("kazan_service", "kazan_dispatch"),
         "org_kazan_contractor": ("kazan_contractor", "kazan_embankment"),
         "org_moscow_service": ("moscow_service", "moscow_dispatch"),
+        "org_moscow_roads": ("moscow_roads", "moscow_roads_cao"),
+        "dept_almet_north": ("almet_service", "almet_north"),
+        "dept_almet_center": ("almet_service", "almet_center"),
+        "dept_almet_industrial": ("almet_contractor", "almet_industrial"),
+        "dept_kazan_center": ("kazan_service", "kazan_center"),
+        "dept_kazan_embankment": ("kazan_contractor", "kazan_embankment"),
+        "dept_moscow_center": ("moscow_service", "moscow_center"),
+        "dept_moscow_yard": ("moscow_service", "moscow_yard"),
+        "dept_tat_road_patrol": ("tat_road_service", "tat_road_patrol"),
+        "dept_moscow_roads_cao": ("moscow_roads", "moscow_roads_cao"),
         "almet_worker_1": ("almet_service", "almet_north"),
         "almet_worker_2": ("almet_service", "almet_north"),
         "almet_worker_3": ("almet_service", "almet_center"),
@@ -476,6 +506,10 @@ def run() -> None:
         "moscow_worker_1": ("moscow_service", "moscow_center"),
         "moscow_worker_2": ("moscow_service", "moscow_center"),
         "moscow_yard_1": ("moscow_service", "moscow_yard"),
+        "tat_road_worker_1": ("tat_road_service", "tat_road_patrol"),
+        "tat_road_worker_2": ("tat_road_service", "tat_road_patrol"),
+        "moscow_road_worker_1": ("moscow_roads", "moscow_roads_cao"),
+        "moscow_road_worker_2": ("moscow_roads", "moscow_roads_cao"),
     }
 
     for username, (organization_key, department_key) in user_affiliations.items():
@@ -483,6 +517,28 @@ def run() -> None:
         user.organization = organizations[organization_key]
         user.department = departments[department_key]
         user.save(update_fields=["organization", "department"])
+
+    organization_managers = {
+        "almet_service": users["org_almet_service"],
+        "almet_contractor": users["org_almet_contractor"],
+        "tat_road_service": users["org_tat_road_service"],
+        "kazan_service": users["org_kazan_service"],
+        "kazan_contractor": users["org_kazan_contractor"],
+        "moscow_service": users["org_moscow_service"],
+        "moscow_roads": users["org_moscow_roads"],
+    }
+
+    department_managers = {
+        "almet_north": users["dept_almet_north"],
+        "almet_center": users["dept_almet_center"],
+        "almet_industrial": users["dept_almet_industrial"],
+        "tat_road_patrol": users["dept_tat_road_patrol"],
+        "kazan_center": users["dept_kazan_center"],
+        "kazan_embankment": users["dept_kazan_embankment"],
+        "moscow_center": users["dept_moscow_center"],
+        "moscow_yard": users["dept_moscow_yard"],
+        "moscow_roads_cao": users["dept_moscow_roads_cao"],
+    }
 
     zone_specs = [
         ("Север Альметьевска", "almet_service", "almet_north", "almet_north_team", "16", "almet", "almetyevsk", "MUNICIPAL_LAND", 52.304, 54.920, 0.035, 0.025, "Жилая северная часть города и прилегающие дворы."),
@@ -493,8 +549,8 @@ def run() -> None:
         ("Набережная Казани", "kazan_contractor", "kazan_embankment", "kazan_embankment_team", "16", "kazan", "kazan", "MUNICIPAL_LAND", 49.093, 55.800, 0.030, 0.018, "Набережная, портовая зона и береговые площадки."),
         ("Тверской район Москвы", "moscow_service", "moscow_center", "moscow_center_team", "77", "moscow", "moscow", "MUNICIPAL_LAND", 37.612, 55.763, 0.030, 0.018, "Центральные улицы и общественные зоны района."),
         ("Дворовые территории Москвы", "moscow_service", "moscow_yard", "moscow_yard_team", "77", "moscow", "moscow", "MUNICIPAL_LAND", 37.634, 55.752, 0.026, 0.016, "Дворы, контейнерные площадки и проходы."),
-        ("Альметьевские дороги", "tat_road_service", None, None, "16", "almet", "almetyevsk", "ROAD_INFRASTRUCTURE", 52.278, 54.910, 0.040, 0.020, "Полоса отвода дорог и развязки возле города."),
-        ("Дороги ЦАО", "moscow_roads", None, None, "77", "moscow", "moscow", "ROAD_INFRASTRUCTURE", 37.621, 55.748, 0.030, 0.016, "Участки вдоль магистралей и проезжей части."),
+        ("Альметьевские дороги", "tat_road_service", "tat_road_patrol", "tat_road_team", "16", "almet", "almetyevsk", "ROAD_INFRASTRUCTURE", 52.278, 54.910, 0.040, 0.020, "Полоса отвода дорог и развязки возле города."),
+        ("Дороги ЦАО", "moscow_roads", "moscow_roads_cao", "moscow_roads_team", "77", "moscow", "moscow", "ROAD_INFRASTRUCTURE", 37.621, 55.748, 0.030, 0.016, "Участки вдоль магистралей и проезжей части."),
     ]
 
     for name, org_key, dep_key, brigade_key, subject_key, municipality_key, locality_key, territory_key, lon, lat, lon_delta, lat_delta, comment in zone_specs:
@@ -1140,34 +1196,62 @@ def run() -> None:
             )
 
         routing_time = status_times.get(Request.Status.VERIFIED)
-        if routing_time and spec.get("organization"):
+        organization_key = spec.get("organization")
+        department_key = spec.get("department")
+        brigade_key = spec.get("brigade")
+        worker_key = spec.get("worker")
+
+        if routing_time and organization_key:
+            coordinator_user = users.get(spec["coordinator"]) if spec.get("coordinator") else users["admin_elena"]
+            organization = organizations.get(organization_key)
+            department = departments.get(department_key) if department_key else None
+            brigade = brigades.get(brigade_key) if brigade_key else None
+            worker = users.get(worker_key) if worker_key else None
+
             create_assignment(
                 request_obj,
                 RequestAssignment.AssignmentType.ROUTING,
                 routing_time,
-                assigned_by=users.get(spec["coordinator"]) if spec.get("coordinator") else users["admin_elena"],
-                organization=organizations.get(spec["organization"]),
-                department=departments.get(spec["department"]) if spec.get("department") else None,
-                brigade=brigades.get(spec["brigade"]) if spec.get("brigade") else None,
-                comment="Маршрутизация после классификации обращения.",
+                assigned_by=coordinator_user,
+                organization=organization,
+                comment="Координатор назначил ответственную организацию.",
             )
 
-        in_progress_time = status_times.get(Request.Status.IN_PROGRESS)
-        if in_progress_time and spec.get("worker"):
-            completed_assignment_time = status_times.get(Request.Status.ON_CHECK) or status_times.get(Request.Status.COMPLETED)
-            create_assignment(
-                request_obj,
-                RequestAssignment.AssignmentType.WORKER,
-                in_progress_time,
-                assigned_by=users.get(spec["coordinator"]) if spec.get("coordinator") else users["admin_elena"],
-                organization=organizations.get(spec["organization"]) if spec.get("organization") else None,
-                department=departments.get(spec["department"]) if spec.get("department") else None,
-                brigade=brigades.get(spec["brigade"]) if spec.get("brigade") else None,
-                worker=users.get(spec["worker"]),
-                comment="Назначение исполнителя на уборку.",
-                accepted_at=in_progress_time + timedelta(minutes=45),
-                completed_at=completed_assignment_time,
-            )
+            department_assignment_time = None
+            if department is not None:
+                department_assignment_time = routing_time + timedelta(minutes=20)
+                create_assignment(
+                    request_obj,
+                    RequestAssignment.AssignmentType.ROUTING,
+                    department_assignment_time,
+                    assigned_by=organization_managers.get(organization_key, coordinator_user),
+                    organization=organization,
+                    department=department,
+                    comment="Руководитель организации назначил подразделение.",
+                )
+
+            if brigade is not None or worker is not None:
+                in_progress_time = status_times.get(Request.Status.IN_PROGRESS)
+                completed_assignment_time = status_times.get(Request.Status.ON_CHECK) or status_times.get(Request.Status.COMPLETED)
+                internal_assignment_time = (department_assignment_time or routing_time) + timedelta(minutes=40)
+                if in_progress_time:
+                    internal_assignment_time = max(internal_assignment_time, in_progress_time - timedelta(minutes=45))
+
+                create_assignment(
+                    request_obj,
+                    RequestAssignment.AssignmentType.WORKER if worker is not None else RequestAssignment.AssignmentType.ROUTING,
+                    internal_assignment_time,
+                    assigned_by=department_managers.get(department_key)
+                    or organization_managers.get(organization_key)
+                    or coordinator_user,
+                    organization=organization,
+                    department=department,
+                    brigade=brigade,
+                    worker=worker,
+                    comment="Руководитель подразделения назначил бригаду и исполнителя." if worker is not None else "Руководитель подразделения назначил бригаду.",
+                    accepted_at=in_progress_time + timedelta(minutes=45) if in_progress_time and worker is not None else None,
+                    completed_at=completed_assignment_time if worker is not None else None,
+                )
 
         if spec.get("rework"):
             rework_time = status_times.get(Request.Status.ON_CHECK, updated_at - timedelta(hours=3))
@@ -1185,12 +1269,12 @@ def run() -> None:
                 request_obj,
                 RequestAssignment.AssignmentType.REASSIGNMENT,
                 rework_time + timedelta(minutes=15),
-                assigned_by=users[rework["created_by"]],
+                assigned_by=department_managers.get(spec.get("department")) or users[rework["created_by"]],
                 organization=organizations.get(spec["organization"]) if spec.get("organization") else None,
                 department=departments.get(spec["department"]) if spec.get("department") else None,
                 brigade=brigades.get(spec["brigade"]) if spec.get("brigade") else None,
                 worker=users.get(rework.get("new_worker")) if rework.get("new_worker") else None,
-                comment="Повторное назначение после возврата на доработку.",
+                comment="Руководитель подразделения повторно назначил исполнителя после возврата на доработку.",
             )
 
         if spec.get("verification"):

@@ -2,32 +2,19 @@ import { useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
 import Notice from "../../components/Notice";
 import RequestResponsibilityMap from "../../components/maps/RequestResponsibilityMap";
-import {
-  getRequest,
-  getRequestReferenceOptions,
-  organizationAssignRequest,
-} from "../../api/requests";
+import { getRequestReferenceOptions, getRequest } from "../../api/requests";
+import { assignWorker, setRequestStatus } from "../../api/admin";
 import { handlingModeLabel, statusClass, statusLabel } from "../../ui/status";
 import { formatApiError } from "../../utils/apiErrors";
 
-function toNumberOrNull(value) {
-  return value === "" || value === null || value === undefined ? null : Number(value);
-}
-
-function buildAssignmentForm(request) {
-  return {
-    responsible_department: request?.responsible_department ?? null,
-    comment: "",
-  };
-}
-
-export default function OrganizationRequestDetail() {
+export default function AdminRequestDetail() {
   const { id } = useParams();
   const [requestItem, setRequestItem] = useState(null);
   const [options, setOptions] = useState(null);
-  const [form, setForm] = useState(buildAssignmentForm(null));
   const [msg, setMsg] = useState(null);
   const [busy, setBusy] = useState(false);
+  const [workerId, setWorkerId] = useState("");
+  const [statusValue, setStatusValue] = useState("");
 
   const load = async () => {
     setMsg(null);
@@ -37,7 +24,8 @@ export default function OrganizationRequestDetail() {
     ]);
     setRequestItem(requestData);
     setOptions(optionsData);
-    setForm(buildAssignmentForm(requestData));
+    setWorkerId(requestData.assigned_worker || "");
+    setStatusValue(requestData.status || "");
   };
 
   useEffect(() => {
@@ -49,31 +37,60 @@ export default function OrganizationRequestDetail() {
     });
   }, [id]);
 
-  const departments = useMemo(() => {
-    if (!options) return [];
-    const orgId = options.current_user?.organization || requestItem?.responsible_organization;
-    if (!orgId) return options.departments || [];
-    return (options.departments || []).filter((department) => department.organization_id === Number(orgId));
-  }, [options, requestItem?.responsible_organization]);
+  const workers = useMemo(() => {
+    if (!options?.workers) return [];
+    let filtered = options.workers;
+    if (requestItem?.responsible_organization) {
+      filtered = filtered.filter(
+        (worker) => worker.organization_id === Number(requestItem.responsible_organization)
+      );
+    }
+    if (requestItem?.responsible_department) {
+      filtered = filtered.filter(
+        (worker) => worker.department_id === Number(requestItem.responsible_department)
+      );
+    }
+    return filtered;
+  }, [options, requestItem?.responsible_organization, requestItem?.responsible_department]);
 
-  const updateField = (field, value) => {
-    setForm((prev) => ({ ...prev, [field]: value }));
-  };
+  const handleAssignWorker = async () => {
+    if (!workerId) {
+      setMsg({ type: "warning", text: "Выберите исполнителя для admin override." });
+      return;
+    }
 
-  const submit = async () => {
     setBusy(true);
     setMsg(null);
     try {
-      await organizationAssignRequest(id, {
-        responsible_department: toNumberOrNull(form.responsible_department),
-        comment: form.comment.trim(),
-      });
+      await assignWorker(id, Number(workerId));
       await load();
-      setMsg({ type: "success", text: "Подразделение назначено." });
+      setMsg({ type: "success", text: "Исполнитель назначен по admin override." });
     } catch (error) {
       setMsg({
         type: "danger",
-        text: formatApiError(error, "Ошибка назначения подразделения."),
+        text: formatApiError(error, "Ошибка admin override назначения исполнителя."),
+      });
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handleSetStatus = async () => {
+    if (!statusValue) {
+      setMsg({ type: "warning", text: "Выберите статус для admin override." });
+      return;
+    }
+
+    setBusy(true);
+    setMsg(null);
+    try {
+      await setRequestStatus(id, statusValue);
+      await load();
+      setMsg({ type: "success", text: "Статус обновлен по admin override." });
+    } catch (error) {
+      setMsg({
+        type: "danger",
+        text: formatApiError(error, "Ошибка admin override изменения статуса."),
       });
     } finally {
       setBusy(false);
@@ -105,6 +122,8 @@ export default function OrganizationRequestDetail() {
           <div className="card p-3 h-100">
             <div className="fw-semibold mb-2">Данные заявки</div>
             <div className="d-grid gap-1">
+              <div><b>Автор:</b> {requestItem.created_by_username || requestItem.created_by}</div>
+              <div><b>Координатор:</b> {requestItem.coordinator_username || "-"}</div>
               <div><b>Адрес:</b> {requestItem.address || "-"}</div>
               <div><b>Город:</b> {requestItem.city || "-"}</div>
               <div><b>Тип территории:</b> {requestItem.territory_type_name || "-"}</div>
@@ -113,7 +132,6 @@ export default function OrganizationRequestDetail() {
               <div><b>Подразделение:</b> {requestItem.responsible_department_name || "-"}</div>
               <div><b>Бригада:</b> {requestItem.assigned_brigade_name || "-"}</div>
               <div><b>Исполнитель:</b> {requestItem.assigned_worker_username || "-"}</div>
-              <div><b>Координатор:</b> {requestItem.coordinator_username || "-"}</div>
               <div><b>Координаты:</b> {requestItem.latitude ?? "-"}, {requestItem.longitude ?? "-"}</div>
             </div>
           </div>
@@ -121,40 +139,49 @@ export default function OrganizationRequestDetail() {
 
         <div className="col-lg-6">
           <div className="card p-3 h-100">
-            <div className="fw-semibold mb-2">Назначение подразделения</div>
+            <div className="fw-semibold mb-2">Admin override</div>
             <div className="text-muted small mb-3">
-              Руководитель организации назначает только подразделение. Бригаду и исполнителя дальше назначает руководитель подразделения.
+              Этот экран не заменяет coordinator/org manager/department manager workflow. Здесь доступны только аварийные override-действия.
             </div>
+
             <div className="row g-3">
               <div className="col-12">
-                <label className="form-label">Подразделение</label>
+                <label className="form-label">Исполнитель</label>
                 <select
                   className="form-select"
-                  value={form.responsible_department ?? ""}
-                  onChange={(event) => updateField("responsible_department", event.target.value || null)}
+                  value={workerId}
+                  onChange={(event) => setWorkerId(event.target.value)}
                 >
                   <option value="">Не выбрано</option>
-                  {departments.map((department) => (
-                    <option key={department.id} value={department.id}>
-                      {department.name}
+                  {workers.map((worker) => (
+                    <option key={worker.id} value={worker.id}>
+                      #{worker.id} {worker.username}
                     </option>
                   ))}
                 </select>
               </div>
               <div className="col-12">
-                <label className="form-label">Комментарий</label>
-                <textarea
-                  className="form-control"
-                  rows={3}
-                  value={form.comment}
-                  onChange={(event) => updateField("comment", event.target.value)}
-                  placeholder="Куда и почему направляется заявка"
-                />
+                <label className="form-label">Статус</label>
+                <select
+                  className="form-select"
+                  value={statusValue}
+                  onChange={(event) => setStatusValue(event.target.value)}
+                >
+                  {(options.choices?.request_status || []).map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
               </div>
             </div>
-            <div className="d-flex justify-content-end mt-3">
-              <button className="btn btn-primary" onClick={submit} disabled={busy}>
-                {busy ? "..." : "Сохранить маршрут"}
+
+            <div className="d-flex justify-content-end gap-2 mt-3">
+              <button className="btn btn-outline-primary" onClick={handleAssignWorker} disabled={busy}>
+                {busy ? "..." : "Назначить"}
+              </button>
+              <button className="btn btn-outline-secondary" onClick={handleSetStatus} disabled={busy}>
+                {busy ? "..." : "Сменить статус"}
               </button>
             </div>
           </div>
@@ -178,7 +205,8 @@ export default function OrganizationRequestDetail() {
                   <div key={zone.id} className={`gc-zone-card ${zone.is_selected ? "gc-zone-card--selected" : ""}`}>
                     <div className="fw-semibold">{zone.name}</div>
                     <div className="text-muted small">
-                      {zone.department_name || zone.organization_name || "-"}
+                      {zone.organization_name || "-"}
+                      {zone.department_name ? ` • ${zone.department_name}` : ""}
                       {zone.brigade_name ? ` • ${zone.brigade_name}` : ""}
                     </div>
                     <div className="gc-badge-stack mt-2">
@@ -213,7 +241,7 @@ export default function OrganizationRequestDetail() {
             {requestItem.after_photo ? (
               <img src={requestItem.after_photo} alt="after" className="img-fluid rounded" />
             ) : (
-              <div className="text-muted">Фото результата пока не загружено</div>
+              <div className="text-muted">Нет фото</div>
             )}
           </div>
         </div>
@@ -242,26 +270,36 @@ export default function OrganizationRequestDetail() {
         </div>
         <div className="col-xl-6">
           <div className="card p-3 h-100">
-            <div className="fw-semibold mb-2">Назначения</div>
+            <div className="fw-semibold mb-2">Назначения и передачи</div>
             <div className="gc-timeline">
-              {requestItem.assignments?.length ? (
-                requestItem.assignments.map((assignment) => (
-                  <div key={assignment.id} className="gc-timeline__item">
-                    <div className="fw-semibold">{assignment.assignment_type}</div>
-                    <div className="text-muted small">
-                      {assignment.assigned_by_username || "Система"} • {new Date(assignment.created_at).toLocaleString()}
-                    </div>
-                    <div>
-                      {assignment.assigned_department_name ||
-                        assignment.assigned_brigade_name ||
-                        assignment.assigned_worker_username ||
-                        "-"}
-                    </div>
-                    {assignment.comment && <div className="text-muted small mt-1">{assignment.comment}</div>}
+              {requestItem.assignments?.map((assignment) => (
+                <div key={`assignment-${assignment.id}`} className="gc-timeline__item">
+                  <div className="fw-semibold">{assignment.assignment_type}</div>
+                  <div className="text-muted small">
+                    {assignment.assigned_by_username || "Система"} • {new Date(assignment.created_at).toLocaleString()}
                   </div>
-                ))
-              ) : (
-                <div className="text-muted">Назначений пока нет.</div>
+                  <div>
+                    {assignment.assigned_organization_name ||
+                      assignment.assigned_department_name ||
+                      assignment.assigned_brigade_name ||
+                      assignment.assigned_worker_username ||
+                      "-"}
+                  </div>
+                  {assignment.comment && <div className="text-muted small mt-1">{assignment.comment}</div>}
+                </div>
+              ))}
+              {requestItem.external_transfers?.map((transfer) => (
+                <div key={`transfer-${transfer.id}`} className="gc-timeline__item">
+                  <div className="fw-semibold">Передача #{transfer.id}</div>
+                  <div className="text-muted small">
+                    {transfer.created_by_username || "Система"} • {new Date(transfer.sent_at).toLocaleString()}
+                  </div>
+                  <div>{transfer.target_organization_name || transfer.recipient_name || "-"}</div>
+                  <div className="text-muted small">{transfer.transfer_reason}</div>
+                </div>
+              ))}
+              {!requestItem.assignments?.length && !requestItem.external_transfers?.length && (
+                <div className="text-muted">История назначений пуста.</div>
               )}
             </div>
           </div>

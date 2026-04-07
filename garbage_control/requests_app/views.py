@@ -31,11 +31,12 @@ from .models import (
     VerificationResult,
     create_status_history_entry,
 )
-from .permissions import IsAdminRole, IsCitizen, IsCoordinator, IsOrgManager, IsWorker
+from .permissions import IsAdminRole, IsCitizen, IsCoordinator, IsDepartmentManager, IsOrgManager, IsWorker
 from .serializers import (
     AdminSetStatusSerializer,
     AssignWorkerSerializer,
     ClassifyRequestSerializer,
+    DepartmentAssignSerializer,
     ExternalTransferCreateSerializer,
     OrganizationAssignSerializer,
     RequestCompletedSerializer,
@@ -94,16 +95,45 @@ class RequestViewSet(ModelViewSet):
             if not user.organization_id:
                 return qs.none()
             qs = qs.filter(organization_id=user.organization_id)
+        elif user.role == User.Role.DEPARTMENT_MANAGER:
+            if not user.department_id or not user.organization_id:
+                return qs.none()
+            qs = qs.filter(
+                organization_id=user.organization_id,
+                department_id=user.department_id,
+            )
 
         if request_obj and request_obj.responsible_organization_id:
             qs = qs.filter(organization_id=request_obj.responsible_organization_id)
 
         if request_obj and request_obj.responsible_department_id:
-            qs = qs.filter(
-                Q(department_id=request_obj.responsible_department_id) | Q(department__isnull=True)
-            )
+            qs = qs.filter(department_id=request_obj.responsible_department_id)
 
         return qs.order_by("username")
+
+    def _get_scoped_brigade_queryset(self, request_obj=None):
+        qs = Brigade.objects.filter(is_active=True).select_related("organization", "department", "supervisor")
+        user = self.request.user
+
+        if user.role == User.Role.ORG_MANAGER:
+            if not user.organization_id:
+                return qs.none()
+            qs = qs.filter(organization_id=user.organization_id)
+        elif user.role == User.Role.DEPARTMENT_MANAGER:
+            if not user.department_id or not user.organization_id:
+                return qs.none()
+            qs = qs.filter(
+                organization_id=user.organization_id,
+                department_id=user.department_id,
+            )
+
+        if request_obj and request_obj.responsible_organization_id:
+            qs = qs.filter(organization_id=request_obj.responsible_organization_id)
+
+        if request_obj and request_obj.responsible_department_id:
+            qs = qs.filter(department_id=request_obj.responsible_department_id)
+
+        return qs.order_by("name")
 
     @staticmethod
     def _worker_matches_request_context(worker, request_obj):
@@ -221,6 +251,15 @@ class RequestViewSet(ModelViewSet):
                     | Q(responsible_department__organization_id=user.organization_id)
                     | Q(assigned_brigade__organization_id=user.organization_id)
                 ).distinct()
+        elif user.role == "DEPARTMENT_MANAGER":
+            if not user.department_id:
+                scoped_qs = qs.none()
+            else:
+                scoped_qs = qs.filter(
+                    Q(responsible_department_id=user.department_id)
+                    | Q(assigned_brigade__department_id=user.department_id)
+                    | Q(assigned_worker__department_id=user.department_id)
+                ).distinct()
         elif user.role == "WORKER":
             scoped_qs = qs.filter(assigned_worker=user)
         else:
@@ -244,6 +283,9 @@ class RequestViewSet(ModelViewSet):
 
         if self.action in ("organization_assign",):
             return [IsAuthenticated(), IsOrgManager()]
+
+        if self.action in ("department_assign",):
+            return [IsAuthenticated(), IsDepartmentManager()]
 
         if self.action in ("assign_worker", "set_status"):
             return [IsAuthenticated(), IsAdminRole()]
@@ -362,6 +404,8 @@ class RequestViewSet(ModelViewSet):
 
         req.responsible_organization = responsible_organization
         update_fields.append("responsible_organization")
+        req.coordinator = request.user
+        update_fields.append("coordinator")
 
         if req.status == Request.Status.CREATED:
             req.status = Request.Status.VERIFIED
@@ -501,17 +545,17 @@ class RequestViewSet(ModelViewSet):
             assigned_department=req.responsible_department,
             assigned_brigade=req.assigned_brigade,
             assigned_worker=worker,
-            comment="Исполнитель назначен координатором.",
+            comment="Исполнитель назначен администратором по override.",
         )
 
         self._create_status_history_if_changed(
             req,
             previous_status,
             changed_by=request.user,
-            comment="Назначен исполнитель.",
+            comment="Администратор выполнил override назначения исполнителя.",
         )
 
-        return Response({"status": "Исполнитель назначен"}, status=status.HTTP_200_OK)
+        return Response({"status": "Исполнитель назначен по admin override"}, status=status.HTTP_200_OK)
 
     @action(detail=True, methods=["post"], url_path="organization-assign")
     def organization_assign(self, request, pk=None):
@@ -522,6 +566,90 @@ class RequestViewSet(ModelViewSet):
                 {"error": "Переданную заявку нельзя распределять внутри организации."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
+
+        if req.status == Request.Status.COMPLETED:
+            return Response(
+                {"error": "Завершенную заявку нельзя переназначить внутри организации."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if not request.user.organization_id or not request.user.organization:
+            return Response(
+                {"error": "Пользователь не привязан к организации."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        organization = request.user.organization
+        belongs_to_user_org = any(
+            [
+                req.responsible_organization_id == organization.id,
+                req.responsible_department and req.responsible_department.organization_id == organization.id,
+                req.assigned_brigade and req.assigned_brigade.organization_id == organization.id,
+                req.assigned_worker and req.assigned_worker.organization_id == organization.id,
+            ]
+        )
+        if not belongs_to_user_org:
+            return Response(
+                {"error": "Заявка не относится к вашей организации."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        serializer = OrganizationAssignSerializer(
+            data=request.data,
+            context={"organization": organization},
+        )
+        serializer.is_valid(raise_exception=True)
+        data = serializer.validated_data
+
+        department = data.get("responsible_department")
+        previous_status = req.status
+        previous_department_id = req.responsible_department_id
+
+        req.responsible_organization = organization
+        req.responsible_department = department
+        req.assigned_brigade = None
+        req.assigned_worker = None
+        req.handling_mode = Request.HandlingMode.CLEANUP
+
+        update_fields = [
+            "updated_at",
+            "responsible_organization",
+            "responsible_department",
+            "assigned_brigade",
+            "assigned_worker",
+            "handling_mode",
+        ]
+        if req.status in (Request.Status.CREATED, Request.Status.IN_PROGRESS, Request.Status.ON_CHECK):
+            req.status = Request.Status.VERIFIED
+            update_fields.append("status")
+
+        req.save(update_fields=list(dict.fromkeys(update_fields)))
+
+        assignment_type = RequestAssignment.AssignmentType.ROUTING
+        if previous_department_id and previous_department_id != getattr(department, "id", None):
+            assignment_type = RequestAssignment.AssignmentType.REASSIGNMENT
+
+        RequestAssignment.objects.create(
+            request=req,
+            assignment_type=assignment_type,
+            assigned_by=request.user,
+            assigned_organization=organization,
+            assigned_department=department,
+            assigned_brigade=None,
+            assigned_worker=None,
+            comment=(data.get("comment") or "").strip()
+            or "Заявка направлена в подразделение ответственной организации.",
+        )
+
+        self._create_status_history_if_changed(
+            req,
+            previous_status,
+            changed_by=request.user,
+            comment="Руководитель организации назначил подразделение.",
+        )
+
+        detail = RequestDetailSerializer(req, context={"request": request})
+        return Response(detail.data, status=status.HTTP_200_OK)
 
         organization = req.responsible_organization
         if request.user.role == User.Role.ORG_MANAGER:
@@ -616,6 +744,100 @@ class RequestViewSet(ModelViewSet):
             previous_status,
             changed_by=request.user,
             comment="Ответственная организация обновила маршрут исполнения.",
+        )
+
+        detail = RequestDetailSerializer(req, context={"request": request})
+        return Response(detail.data, status=status.HTTP_200_OK)
+
+    @action(detail=True, methods=["post"], url_path="department-assign")
+    def department_assign(self, request, pk=None):
+        req = self.get_object()
+
+        if req.handling_mode == Request.HandlingMode.EXTERNAL_TRANSFER or req.status == Request.Status.TRANSFERRED:
+            return Response(
+                {"error": "Переданную заявку нельзя назначать на бригаду или исполнителя."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if req.status == Request.Status.COMPLETED:
+            return Response(
+                {"error": "Завершенную заявку нельзя переназначить на уровне подразделения."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if not request.user.organization_id or not request.user.department_id or not request.user.department:
+            return Response(
+                {"error": "Пользователь не привязан к подразделению."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        department = request.user.department
+        if req.responsible_department_id != department.id:
+            return Response(
+                {"error": "Заявка не относится к вашему подразделению."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        serializer = DepartmentAssignSerializer(
+            data=request.data,
+            context={"department": department},
+        )
+        serializer.is_valid(raise_exception=True)
+        data = serializer.validated_data
+
+        brigade = data.get("assigned_brigade")
+        worker = data.get("assigned_worker")
+        previous_status = req.status
+        previous_worker_id = req.assigned_worker_id
+        previous_brigade_id = req.assigned_brigade_id
+
+        req.responsible_organization = request.user.organization
+        req.responsible_department = department
+        req.assigned_brigade = brigade
+        req.assigned_worker = worker
+        req.handling_mode = Request.HandlingMode.CLEANUP
+
+        update_fields = [
+            "updated_at",
+            "responsible_organization",
+            "responsible_department",
+            "assigned_brigade",
+            "assigned_worker",
+            "handling_mode",
+        ]
+        if req.status in (Request.Status.CREATED, Request.Status.IN_PROGRESS, Request.Status.ON_CHECK):
+            req.status = Request.Status.VERIFIED
+            update_fields.append("status")
+
+        req.save(update_fields=list(dict.fromkeys(update_fields)))
+
+        assignment_type = RequestAssignment.AssignmentType.ROUTING
+        if worker is not None:
+            assignment_type = (
+                RequestAssignment.AssignmentType.REASSIGNMENT
+                if previous_worker_id and previous_worker_id != worker.id
+                else RequestAssignment.AssignmentType.WORKER
+            )
+        elif previous_brigade_id and previous_brigade_id != getattr(brigade, "id", None):
+            assignment_type = RequestAssignment.AssignmentType.REASSIGNMENT
+
+        RequestAssignment.objects.create(
+            request=req,
+            assignment_type=assignment_type,
+            assigned_by=request.user,
+            assigned_organization=req.responsible_organization,
+            assigned_department=department,
+            assigned_brigade=brigade,
+            assigned_worker=worker,
+            comment=(data.get("comment") or "").strip()
+            or "Руководитель подразделения обновил назначение бригады/исполнителя.",
+        )
+
+        self._create_status_history_if_changed(
+            req,
+            previous_status,
+            changed_by=request.user,
+            comment="Руководитель подразделения обновил внутреннее назначение.",
         )
 
         detail = RequestDetailSerializer(req, context={"request": request})
@@ -779,7 +1001,7 @@ class RequestViewSet(ModelViewSet):
             req,
             previous_status,
             changed_by=request.user,
-            comment="Статус изменён администратором.",
+            comment="Статус изменён администратором по override.",
         )
 
         return Response({"status": req.status}, status=status.HTTP_200_OK)
@@ -852,7 +1074,7 @@ class RequestViewSet(ModelViewSet):
         worker_qs = self._get_scoped_worker_queryset()
         organization_qs = Organization.objects.filter(is_active=True)
         department_qs = Department.objects.filter(is_active=True)
-        brigade_qs = Brigade.objects.filter(is_active=True)
+        brigade_qs = self._get_scoped_brigade_queryset()
 
         if user.role == User.Role.ORG_MANAGER:
             if not user.organization_id:
@@ -864,6 +1086,19 @@ class RequestViewSet(ModelViewSet):
                 organization_qs = organization_qs.filter(id=user.organization_id)
                 department_qs = department_qs.filter(organization_id=user.organization_id)
                 brigade_qs = brigade_qs.filter(organization_id=user.organization_id)
+        elif user.role == User.Role.DEPARTMENT_MANAGER:
+            if not user.organization_id or not user.department_id:
+                organization_qs = organization_qs.none()
+                department_qs = department_qs.none()
+                brigade_qs = brigade_qs.none()
+                worker_qs = worker_qs.none()
+            else:
+                organization_qs = organization_qs.filter(id=user.organization_id)
+                department_qs = department_qs.filter(id=user.department_id)
+                brigade_qs = brigade_qs.filter(
+                    organization_id=user.organization_id,
+                    department_id=user.department_id,
+                )
 
         payload = {
             "workers": list(

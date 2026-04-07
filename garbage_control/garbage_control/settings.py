@@ -34,7 +34,6 @@ INSTALLED_APPS = [
 
     'users',
     'requests_app',
-    'mediafiles',
     'ai_verification',
 ]
 
@@ -74,8 +73,6 @@ TEMPLATES = [
 WSGI_APPLICATION = 'garbage_control.wsgi.application'
 
 
-# Database
-# https://docs.djangoproject.com/en/6.0/ref/settings/#databases
 
 
 DATABASES = {
@@ -107,8 +104,7 @@ SIMPLE_JWT = {
 
 
 
-# Password validation
-# https://docs.djangoproject.com/en/6.0/ref/settings/#auth-password-validators
+
 
 AUTH_PASSWORD_VALIDATORS = [
     {
@@ -126,8 +122,7 @@ AUTH_PASSWORD_VALIDATORS = [
 ]
 
 
-# Internationalization
-# https://docs.djangoproject.com/en/6.0/topics/i18n/
+
 
 LANGUAGE_CODE = 'ru-ru'
 
@@ -150,8 +145,6 @@ AI_MAX_AFTER = int(os.getenv("AI_MAX_AFTER", "0"))
 AI_ON_BEFORE_FOUND_STATUS = os.getenv("AI_ON_BEFORE_FOUND_STATUS", "VERIFIED")
 AI_ON_BEFORE_NOT_FOUND_STATUS = os.getenv("AI_ON_BEFORE_NOT_FOUND_STATUS", "CREATED")
 YANDEX_GEOCODER_API_KEY = os.getenv("YANDEX_GEOCODER_API_KEY", "")
-# Static files (CSS, JavaScript, Images)
-# https://docs.djangoproject.com/en/6.0/howto/static-files/
 
 STATIC_URL = 'static/'
 

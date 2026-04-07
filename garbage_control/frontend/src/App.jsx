@@ -20,10 +20,13 @@ import RequestDetail from "./pages/coord/CoordRequestDetail";
 import CoordMap from "./pages/coord/CoordMap";
 import OrganizationRequests from "./pages/org/OrganizationRequests";
 import OrganizationRequestDetail from "./pages/org/OrganizationRequestDetail";
+import DepartmentRequests from "./pages/department/DepartmentRequests";
+import DepartmentRequestDetail from "./pages/department/DepartmentRequestDetail";
 
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminUsers from "./pages/admin/AdminUsers";
 import AdminRequests from "./pages/admin/AdminRequests";
+import AdminRequestDetail from "./pages/admin/AdminRequestDetail";
 import AdminDirectories from "./pages/admin/AdminDirectories";
 import AdminZones from "./pages/admin/AdminZones";
 import AdminLayout from "./pages/admin/AdminLayout";
@@ -111,7 +114,7 @@ export default function App() {
         <Route
           path="/coord/requests/:id"
           element={
-            <RoleGuard authed={authed} role={me?.role} allow={["COORDINATOR", "ADMIN"]}>
+            <RoleGuard authed={authed} role={me?.role} allow={["COORDINATOR"]}>
               <RequestDetail />
             </RoleGuard>
           }
@@ -152,6 +155,23 @@ export default function App() {
         />
 
         <Route
+          path="/department/requests"
+          element={
+            <RoleGuard authed={authed} role={me?.role} allow={["DEPARTMENT_MANAGER"]}>
+              <DepartmentRequests />
+            </RoleGuard>
+          }
+        />
+        <Route
+          path="/department/requests/:id"
+          element={
+            <RoleGuard authed={authed} role={me?.role} allow={["DEPARTMENT_MANAGER"]}>
+              <DepartmentRequestDetail />
+            </RoleGuard>
+          }
+        />
+
+        <Route
           path="/admin"
           element={
             <RoleGuard authed={authed} role={me?.role} allow={["ADMIN"]}>
@@ -162,6 +182,7 @@ export default function App() {
           <Route index element={<AdminDashboard />} />
           <Route path="users" element={<AdminUsers />} />
           <Route path="requests" element={<AdminRequests />} />
+          <Route path="requests/:id" element={<AdminRequestDetail />} />
           <Route path="directories" element={<AdminDirectories />} />
           <Route path="zones" element={<AdminZones />} />
         </Route>

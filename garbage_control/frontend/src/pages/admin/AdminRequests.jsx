@@ -222,7 +222,7 @@ export default function AdminRequests() {
                     </div>
                   </td>
                   <td>
-                    <Link to={`/coord/requests/${request.id}`} className="btn btn-sm btn-outline-dark">
+                    <Link to={`/admin/requests/${request.id}`} className="btn btn-sm btn-outline-dark">
                       Детали
                     </Link>
                   </td>

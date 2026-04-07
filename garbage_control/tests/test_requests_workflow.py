@@ -43,6 +43,7 @@ def test_full_request_workflow_completes_request(
     citizen,
     coordinator,
     org_manager,
+    department_manager,
     worker,
     make_client,
     image_file,
@@ -58,6 +59,7 @@ def test_full_request_workflow_completes_request(
     citizen_client = make_client(citizen)
     coordinator_client = make_client(coordinator)
     org_manager_client = make_client(org_manager)
+    department_manager_client = make_client(department_manager)
     worker_client = make_client(worker)
 
     with patch("requests_app.serializers.detect_city_by_coordinates", return_value="Almetyevsk"), patch(
@@ -97,6 +99,13 @@ def test_full_request_workflow_completes_request(
         f"/api/requests/{request_id}/organization-assign/",
         {
             "responsible_department": department.id,
+            "comment": "Route request to department.",
+        },
+        format="json",
+    )
+    department_assign_response = department_manager_client.post(
+        f"/api/requests/{request_id}/department-assign/",
+        {
             "assigned_brigade": brigade.id,
             "assigned_worker": worker.id,
             "comment": "Assign cleanup crew.",
@@ -130,6 +139,7 @@ def test_full_request_workflow_completes_request(
     assert create_response.status_code == status.HTTP_201_CREATED
     assert classify_response.status_code == status.HTTP_200_OK
     assert org_assign_response.status_code == status.HTTP_200_OK
+    assert department_assign_response.status_code == status.HTTP_200_OK
     assert take_response.status_code == status.HTTP_200_OK
     assert upload_response.status_code == status.HTTP_200_OK
     assert verify_response.status_code == status.HTTP_200_OK

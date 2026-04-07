@@ -3,9 +3,9 @@ import { useParams } from "react-router-dom";
 import Notice from "../../components/Notice";
 import RequestResponsibilityMap from "../../components/maps/RequestResponsibilityMap";
 import {
+  departmentAssignRequest,
   getRequest,
   getRequestReferenceOptions,
-  organizationAssignRequest,
 } from "../../api/requests";
 import { handlingModeLabel, statusClass, statusLabel } from "../../ui/status";
 import { formatApiError } from "../../utils/apiErrors";
@@ -16,12 +16,13 @@ function toNumberOrNull(value) {
 
 function buildAssignmentForm(request) {
   return {
-    responsible_department: request?.responsible_department ?? null,
+    assigned_brigade: request?.assigned_brigade ?? null,
+    assigned_worker: request?.assigned_worker ?? null,
     comment: "",
   };
 }
 
-export default function OrganizationRequestDetail() {
+export default function DepartmentRequestDetail() {
   const { id } = useParams();
   const [requestItem, setRequestItem] = useState(null);
   const [options, setOptions] = useState(null);
@@ -49,12 +50,19 @@ export default function OrganizationRequestDetail() {
     });
   }, [id]);
 
-  const departments = useMemo(() => {
+  const departmentId = options?.current_user?.department || requestItem?.responsible_department;
+
+  const brigades = useMemo(() => {
     if (!options) return [];
-    const orgId = options.current_user?.organization || requestItem?.responsible_organization;
-    if (!orgId) return options.departments || [];
-    return (options.departments || []).filter((department) => department.organization_id === Number(orgId));
-  }, [options, requestItem?.responsible_organization]);
+    if (!departmentId) return options.brigades || [];
+    return (options.brigades || []).filter((brigade) => brigade.department_id === Number(departmentId));
+  }, [options, departmentId]);
+
+  const workers = useMemo(() => {
+    if (!options) return [];
+    if (!departmentId) return options.workers || [];
+    return (options.workers || []).filter((worker) => worker.department_id === Number(departmentId));
+  }, [options, departmentId]);
 
   const updateField = (field, value) => {
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -64,16 +72,17 @@ export default function OrganizationRequestDetail() {
     setBusy(true);
     setMsg(null);
     try {
-      await organizationAssignRequest(id, {
-        responsible_department: toNumberOrNull(form.responsible_department),
+      await departmentAssignRequest(id, {
+        assigned_brigade: toNumberOrNull(form.assigned_brigade),
+        assigned_worker: toNumberOrNull(form.assigned_worker),
         comment: form.comment.trim(),
       });
       await load();
-      setMsg({ type: "success", text: "Подразделение назначено." });
+      setMsg({ type: "success", text: "Назначение подразделения обновлено." });
     } catch (error) {
       setMsg({
         type: "danger",
-        text: formatApiError(error, "Ошибка назначения подразделения."),
+        text: formatApiError(error, "Ошибка назначения бригады или исполнителя."),
       });
     } finally {
       setBusy(false);
@@ -121,22 +130,37 @@ export default function OrganizationRequestDetail() {
 
         <div className="col-lg-6">
           <div className="card p-3 h-100">
-            <div className="fw-semibold mb-2">Назначение подразделения</div>
+            <div className="fw-semibold mb-2">Назначение внутри подразделения</div>
             <div className="text-muted small mb-3">
-              Руководитель организации назначает только подразделение. Бригаду и исполнителя дальше назначает руководитель подразделения.
+              Руководитель подразделения выбирает бригаду и при необходимости конкретного исполнителя. Координатор и руководитель организации эти поля не меняют.
             </div>
             <div className="row g-3">
               <div className="col-12">
-                <label className="form-label">Подразделение</label>
+                <label className="form-label">Бригада</label>
                 <select
                   className="form-select"
-                  value={form.responsible_department ?? ""}
-                  onChange={(event) => updateField("responsible_department", event.target.value || null)}
+                  value={form.assigned_brigade ?? ""}
+                  onChange={(event) => updateField("assigned_brigade", event.target.value || null)}
                 >
                   <option value="">Не выбрано</option>
-                  {departments.map((department) => (
-                    <option key={department.id} value={department.id}>
-                      {department.name}
+                  {brigades.map((brigade) => (
+                    <option key={brigade.id} value={brigade.id}>
+                      {brigade.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="col-12">
+                <label className="form-label">Исполнитель</label>
+                <select
+                  className="form-select"
+                  value={form.assigned_worker ?? ""}
+                  onChange={(event) => updateField("assigned_worker", event.target.value || null)}
+                >
+                  <option value="">Не выбрано</option>
+                  {workers.map((worker) => (
+                    <option key={worker.id} value={worker.id}>
+                      #{worker.id} {worker.username}
                     </option>
                   ))}
                 </select>
@@ -148,13 +172,13 @@ export default function OrganizationRequestDetail() {
                   rows={3}
                   value={form.comment}
                   onChange={(event) => updateField("comment", event.target.value)}
-                  placeholder="Куда и почему направляется заявка"
+                  placeholder="Что назначено и какие есть указания для выполнения"
                 />
               </div>
             </div>
             <div className="d-flex justify-content-end mt-3">
               <button className="btn btn-primary" onClick={submit} disabled={busy}>
-                {busy ? "..." : "Сохранить маршрут"}
+                {busy ? "..." : "Сохранить назначение"}
               </button>
             </div>
           </div>

@@ -54,6 +54,11 @@ export async function organizationAssignRequest(id, payload) {
   return res.data;
 }
 
+export async function departmentAssignRequest(id, payload) {
+  const res = await http.post(`/api/requests/${id}/department-assign/`, payload);
+  return res.data;
+}
+
 export async function classifyRequest(id, payload) {
   const res = await http.post(`/api/requests/${id}/classify/`, payload);
   return res.data;

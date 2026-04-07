@@ -1,4 +1,5 @@
 import json
+from collections.abc import Mapping
 
 from django.contrib.auth import get_user_model
 from django.contrib.gis.geos import Point
@@ -438,38 +439,51 @@ class AssignWorkerSerializer(serializers.Serializer):
     worker_id = serializers.IntegerField(min_value=1)
 
 
-class OrganizationAssignSerializer(serializers.Serializer):
+class StrictFieldsSerializer(serializers.Serializer):
+    forbidden_field_errors: dict[str, str] = {}
+    unexpected_field_message = "Недопустимое поле для этого действия."
+
+    def to_internal_value(self, data):
+        if not isinstance(data, Mapping):
+            raise serializers.ValidationError({"non_field_errors": ["Ожидался JSON-объект."]})
+
+        errors = {}
+        allowed_fields = set(self.fields)
+
+        for field_name in data.keys():
+            if field_name in self.forbidden_field_errors:
+                errors[field_name] = [self.forbidden_field_errors[field_name]]
+            elif field_name not in allowed_fields:
+                errors[field_name] = [self.unexpected_field_message]
+
+        if errors:
+            raise serializers.ValidationError(errors)
+
+        return super().to_internal_value(data)
+
+
+class OrganizationAssignSerializer(StrictFieldsSerializer):
+    forbidden_field_errors = {
+        "assigned_brigade": "Руководитель организации назначает только подразделение. Выбор бригады выполняет руководитель подразделения.",
+        "assigned_worker": "Руководитель организации не может назначать исполнителя. Это делает руководитель подразделения или администратор по override.",
+    }
+
     responsible_department = serializers.PrimaryKeyRelatedField(
         queryset=Department.objects.filter(is_active=True),
         required=False,
         allow_null=True,
     )
-    assigned_brigade = serializers.PrimaryKeyRelatedField(
-        queryset=Brigade.objects.filter(is_active=True),
-        required=False,
-        allow_null=True,
-    )
-    assigned_worker = serializers.PrimaryKeyRelatedField(
-        queryset=User.objects.filter(is_active=True, role="WORKER"),
-        required=False,
-        allow_null=True,
-    )
     comment = serializers.CharField(required=False, allow_blank=True, max_length=2000)
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        worker_queryset = self.context.get("worker_queryset")
-        if worker_queryset is not None:
-            self.fields["assigned_worker"].queryset = worker_queryset
 
     def validate(self, attrs):
         organization = self.context["organization"]
         department = attrs.get("responsible_department")
-        brigade = attrs.get("assigned_brigade")
-        worker = attrs.get("assigned_worker")
+        errors = {}
 
         if department and department.organization_id != organization.id:
             raise serializers.ValidationError("Подразделение не относится к организации заявки.")
+
+        return attrs
 
         if brigade and brigade.organization_id != organization.id:
             raise serializers.ValidationError("Бригада не относится к организации заявки.")
@@ -494,6 +508,53 @@ class OrganizationAssignSerializer(serializers.Serializer):
         return attrs
 
 
+class DepartmentAssignSerializer(StrictFieldsSerializer):
+    assigned_brigade = serializers.PrimaryKeyRelatedField(
+        queryset=Brigade.objects.filter(is_active=True),
+        required=False,
+        allow_null=True,
+    )
+    assigned_worker = serializers.PrimaryKeyRelatedField(
+        queryset=User.objects.filter(is_active=True, role=User.Role.WORKER),
+        required=False,
+        allow_null=True,
+    )
+    comment = serializers.CharField(required=False, allow_blank=True, max_length=2000)
+
+    def validate(self, attrs):
+        department = self.context["department"]
+        brigade = attrs.get("assigned_brigade")
+        worker = attrs.get("assigned_worker")
+        errors = {}
+
+        if brigade:
+            if brigade.organization_id != department.organization_id:
+                errors["assigned_brigade"] = "Бригада не относится к организации подразделения."
+            elif brigade.department_id != department.id:
+                errors["assigned_brigade"] = "Бригада не относится к подразделению заявки."
+
+        if worker:
+            if worker.role != User.Role.WORKER:
+                errors["assigned_worker"] = "Назначить можно только исполнителя."
+            elif worker.organization_id != department.organization_id:
+                errors["assigned_worker"] = "Исполнитель не относится к организации подразделения."
+            elif worker.department_id != department.id:
+                errors["assigned_worker"] = "Исполнитель не относится к подразделению заявки."
+
+        if worker and not brigade:
+            errors["assigned_brigade"] = "Сначала выберите бригаду подразделения."
+
+        if brigade and worker and "assigned_worker" not in errors:
+            brigade_member_ids = set(brigade.members.values_list("id", flat=True))
+            if worker.id != brigade.supervisor_id and worker.id not in brigade_member_ids:
+                errors["assigned_worker"] = "Исполнитель не входит в выбранную бригаду."
+
+        if errors:
+            raise serializers.ValidationError(errors)
+
+        return attrs
+
+
 class UploadAfterPhotoSerializer(serializers.Serializer):
     after_photo = serializers.ImageField()
 
@@ -510,7 +571,13 @@ class ReturnToWorkSerializer(serializers.Serializer):
     comment = serializers.CharField(min_length=5, max_length=2000)
 
 
-class ClassifyRequestSerializer(serializers.Serializer):
+class ClassifyRequestSerializer(StrictFieldsSerializer):
+    forbidden_field_errors = {
+        "responsible_department": "Координатор назначает только ответственную организацию. Подразделение назначает руководитель организации.",
+        "assigned_brigade": "Координатор не может назначать бригаду. Это делает руководитель подразделения.",
+        "assigned_worker": "Координатор не может назначать исполнителя. Это делает руководитель подразделения или администратор по override.",
+    }
+
     address = serializers.CharField(required=False, allow_blank=True, max_length=255)
     federal_subject = serializers.PrimaryKeyRelatedField(
         queryset=FederalSubject.objects.filter(is_active=True),
@@ -558,6 +625,8 @@ class ClassifyRequestSerializer(serializers.Serializer):
 
         if locality and federal_subject and locality.municipality.federal_subject_id != federal_subject.id:
             raise serializers.ValidationError("Населённый пункт не относится к выбранному субъекту РФ.")
+
+        return attrs
 
         if False:
             raise serializers.ValidationError("Подразделение не относится к выбранной организации.")

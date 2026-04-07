@@ -2,9 +2,11 @@ import { Link } from "react-router-dom";
 
 function getHomeRoute({ authed, role }) {
   if (!authed) return "/login";
-  if (role === "COORDINATOR" || role === "ADMIN") return "/coord/requests";
+  if (role === "COORDINATOR") return "/coord/requests";
+  if (role === "ADMIN") return "/admin";
   if (role === "WORKER") return "/worker/requests";
   if (role === "ORG_MANAGER") return "/org/requests";
+  if (role === "DEPARTMENT_MANAGER") return "/department/requests";
   return "/requests";
 }
 

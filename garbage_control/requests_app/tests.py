@@ -152,6 +152,14 @@ class RequestWorkflowApiTests(APITestCase):
             organization=self.organization,
             department=self.department,
         )
+        self.department_manager = User.objects.create_user(
+            username="department_manager_test",
+            password="Test12345!",
+            role=User.Role.DEPARTMENT_MANAGER,
+            city="Альметьевск",
+            organization=self.organization,
+            department=self.department,
+        )
         self.worker = User.objects.create_user(
             username="worker_test",
             password="Test12345!",
@@ -181,6 +189,8 @@ class RequestWorkflowApiTests(APITestCase):
         self.coordinator_client.force_authenticate(self.coordinator)
         self.org_manager_client = APIClient()
         self.org_manager_client.force_authenticate(self.org_manager)
+        self.department_manager_client = APIClient()
+        self.department_manager_client.force_authenticate(self.department_manager)
         self.worker_client = APIClient()
         self.worker_client.force_authenticate(self.worker)
         self.other_worker_client = APIClient()
@@ -324,24 +334,32 @@ class RequestWorkflowApiTests(APITestCase):
 
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
-    def test_org_manager_can_assign_worker_inside_his_organization(self):
+    def test_org_manager_assigns_department_and_department_manager_assigns_worker(self):
         request_obj = self.create_request(
             status_value=Request.Status.VERIFIED,
             responsible_organization=self.organization,
         )
 
-        response = self.org_manager_client.post(
+        org_response = self.org_manager_client.post(
             f"/api/requests/{request_obj.id}/organization-assign/",
             {
                 "responsible_department": self.department.id,
-                "assigned_brigade": self.brigade.id,
-                "assigned_worker": self.worker.id,
                 "comment": "Назначить исполнителя северного участка.",
             },
             format="json",
         )
+        department_response = self.department_manager_client.post(
+            f"/api/requests/{request_obj.id}/department-assign/",
+            {
+                "assigned_brigade": self.brigade.id,
+                "assigned_worker": self.worker.id,
+                "comment": "Assign brigade and worker.",
+            },
+            format="json",
+        )
 
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(org_response.status_code, status.HTTP_200_OK)
+        self.assertEqual(department_response.status_code, status.HTTP_200_OK)
         request_obj.refresh_from_db()
         self.assertEqual(request_obj.responsible_department, self.department)
         self.assertEqual(request_obj.assigned_brigade, self.brigade)

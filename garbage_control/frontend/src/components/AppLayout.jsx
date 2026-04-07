@@ -6,6 +6,7 @@ export default function AppLayout({ authed, role, username, onLogout, pageKey, c
   const isAdmin = role === "ADMIN";
   const isWorker = role === "WORKER";
   const isOrgManager = role === "ORG_MANAGER";
+  const isDepartmentManager = role === "DEPARTMENT_MANAGER";
 
   return (
     <>
@@ -60,6 +61,10 @@ export default function AppLayout({ authed, role, username, onLogout, pageKey, c
 
                     {isOrgManager && (
                       <Link className="gc-menu__item" to="/org/requests">Панель организации</Link>
+                    )}
+
+                    {isDepartmentManager && (
+                      <Link className="gc-menu__item" to="/department/requests">Панель подразделения</Link>
                     )}
 
                     {isAdmin && (

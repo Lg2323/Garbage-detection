@@ -4,6 +4,7 @@ import { adminStats } from "../../api/admin";
 import { statusLabel } from "../../ui/status";
 
 const ROLE_LABELS = {
+  DEPARTMENT_MANAGER: "Руководители подразделений",
   CITIZEN: "Граждане",
   WORKER: "Исполнители",
   COORDINATOR: "Координаторы",
@@ -233,7 +234,7 @@ export default function AdminDashboard() {
           <div className="card p-3 h-100">
             <div className="fw-semibold mb-2">Роли пользователей</div>
             <div className="d-flex flex-wrap gap-2">
-              {["CITIZEN", "WORKER", "COORDINATOR", "ORG_MANAGER", "ADMIN"].map((role) => (
+              {["CITIZEN", "WORKER", "COORDINATOR", "ORG_MANAGER", "DEPARTMENT_MANAGER", "ADMIN"].map((role) => (
                 <span key={role} className="badge text-bg-secondary">
                   {ROLE_LABELS[role] || role}: {roleMap.get(role) ?? 0}
                 </span>

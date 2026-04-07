@@ -9,7 +9,7 @@ import {
 import Notice from "../../components/Notice";
 import Pagination from "../../components/Pagination";
 
-const ROLES = ["CITIZEN", "WORKER", "COORDINATOR", "ORG_MANAGER", "ADMIN"];
+const ROLES = ["CITIZEN", "COORDINATOR", "ORG_MANAGER", "DEPARTMENT_MANAGER", "WORKER", "ADMIN"];
 
 const INITIAL_FORM = {
   username: "",

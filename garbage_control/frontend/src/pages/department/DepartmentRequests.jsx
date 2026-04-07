@@ -11,7 +11,7 @@ import { buildRequestQuery, createRequestFilters } from "../../utils/requestFilt
 
 const PAGE_SIZE = 10;
 
-export default function OrganizationRequests() {
+export default function DepartmentRequests() {
   const [items, setItems] = useState([]);
   const [msg, setMsg] = useState("");
   const [loading, setLoading] = useState(false);
@@ -63,8 +63,10 @@ export default function OrganizationRequests() {
     <div className="card p-3 gc-anim gc-anim--up">
       <div className="d-flex align-items-center justify-content-between mb-3 gap-3 flex-wrap">
         <div>
-          <h4 className="mb-0">Организация - заявки</h4>
-          <div className="text-muted">Заявки, уже направленные в ответственную организацию для распределения.</div>
+          <h4 className="mb-0">Подразделение - заявки</h4>
+          <div className="text-muted">
+            Заявки, назначенные вашему подразделению. Здесь руководитель подразделения распределяет их по бригадам и исполнителям.
+          </div>
         </div>
         <span className="badge text-bg-light">Всего: {items.length}</span>
       </div>
@@ -86,7 +88,6 @@ export default function OrganizationRequests() {
             <tr>
               <th style={{ width: 80 }}>ID</th>
               <th>Описание</th>
-              <th style={{ width: 180 }}>Подразделение</th>
               <th style={{ width: 180 }}>Бригада</th>
               <th style={{ width: 180 }}>Исполнитель</th>
               <th style={{ width: 220 }}>Статус</th>
@@ -101,14 +102,13 @@ export default function OrganizationRequests() {
                   <div className="fw-semibold">{item.title}</div>
                   {item.address && <div className="text-muted small">{item.address}</div>}
                 </td>
-                <td>{item.responsible_department_name || "-"}</td>
                 <td>{item.assigned_brigade_name || "-"}</td>
                 <td>{item.assigned_worker_username || "-"}</td>
                 <td>
                   <span className={statusClass(item.status)}>{statusLabel(item.status)}</span>
                 </td>
                 <td>
-                  <Link to={`/org/requests/${item.id}`} className="btn btn-sm btn-outline-primary">
+                  <Link to={`/department/requests/${item.id}`} className="btn btn-sm btn-outline-primary">
                     Открыть
                   </Link>
                 </td>
@@ -116,7 +116,7 @@ export default function OrganizationRequests() {
             ))}
             {!pagedItems.length && (
               <tr>
-                <td colSpan={7} className="text-muted">Ничего не найдено.</td>
+                <td colSpan={6} className="text-muted">Ничего не найдено.</td>
               </tr>
             )}
           </tbody>

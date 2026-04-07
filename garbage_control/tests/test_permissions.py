@@ -131,6 +131,64 @@ def test_org_manager_can_assign_inside_his_organization(
     create_request,
     organization,
     department,
+):
+    request_obj = create_request(
+        status=Request.Status.VERIFIED,
+        responsible_organization=organization,
+    )
+    client = make_client(org_manager)
+
+    response = client.post(
+        f"/api/requests/{request_obj.id}/organization-assign/",
+        {
+            "responsible_department": department.id,
+            "comment": "Assigned by org manager.",
+        },
+        format="json",
+    )
+
+    assert response.status_code == status.HTTP_200_OK
+    request_obj.refresh_from_db()
+    assert request_obj.responsible_department == department
+    assert request_obj.assigned_brigade is None
+    assert request_obj.assigned_worker is None
+
+
+def test_coordinator_gets_field_errors_for_internal_assignment_fields(
+    coordinator,
+    make_client,
+    create_request,
+    organization,
+    department,
+    brigade,
+    worker,
+):
+    request_obj = create_request(status=Request.Status.CREATED)
+    client = make_client(coordinator)
+
+    response = client.post(
+        f"/api/requests/{request_obj.id}/classify/",
+        {
+            "responsible_organization": organization.id,
+            "responsible_department": department.id,
+            "assigned_brigade": brigade.id,
+            "assigned_worker": worker.id,
+        },
+        format="json",
+    )
+
+    assert response.status_code == status.HTTP_400_BAD_REQUEST
+    assert "responsible_department" in response.data
+    assert "assigned_brigade" in response.data
+    assert "assigned_worker" in response.data
+
+
+def test_org_manager_gets_field_errors_for_brigade_and_worker_assignment(
+    org_manager,
+    make_client,
+    create_request,
+    organization,
+    department,
     brigade,
     worker,
 ):
@@ -146,15 +204,75 @@ def test_org_manager_can_assign_inside_his_organization(
             "responsible_department": department.id,
             "assigned_brigade": brigade.id,
             "assigned_worker": worker.id,
-            "comment": "Assigned by org manager.",
+        },
+        format="json",
+    )
+
+    assert response.status_code == status.HTTP_400_BAD_REQUEST
+    assert "assigned_brigade" in response.data
+    assert "assigned_worker" in response.data
+
+
+def test_department_manager_can_assign_brigade_and_worker(
+    department_manager,
+    make_client,
+    create_request,
+    organization,
+    department,
+    brigade,
+    worker,
+):
+    request_obj = create_request(
+        status=Request.Status.VERIFIED,
+        responsible_organization=organization,
+        responsible_department=department,
+    )
+    client = make_client(department_manager)
+
+    response = client.post(
+        f"/api/requests/{request_obj.id}/department-assign/",
+        {
+            "assigned_brigade": brigade.id,
+            "assigned_worker": worker.id,
+            "comment": "Assign brigade and worker.",
         },
         format="json",
     )
 
     assert response.status_code == status.HTTP_200_OK
     request_obj.refresh_from_db()
+    assert request_obj.assigned_brigade == brigade
     assert request_obj.assigned_worker == worker
-    assert request_obj.responsible_department == department
+
+
+def test_department_manager_cannot_assign_foreign_department_objects(
+    department_manager,
+    make_client,
+    create_request,
+    organization,
+    department,
+    brigade,
+    other_worker,
+):
+    request_obj = create_request(
+        status=Request.Status.VERIFIED,
+        responsible_organization=organization,
+        responsible_department=department,
+    )
+    client = make_client(department_manager)
+
+    response = client.post(
+        f"/api/requests/{request_obj.id}/department-assign/",
+        {
+            "assigned_brigade": brigade.id,
+            "assigned_worker": other_worker.id,
+            "comment": "Try assign foreign worker.",
+        },
+        format="json",
+    )
+
+    assert response.status_code == status.HTTP_400_BAD_REQUEST
+    assert "assigned_worker" in response.data
 
 
 def test_worker_can_take_in_work_only_his_own_request(
@@ -193,6 +311,35 @@ def test_worker_can_take_in_work_only_his_own_request(
     assert foreign_response.status_code == status.HTTP_404_NOT_FOUND
     foreign_request.refresh_from_db()
     assert foreign_request.status == Request.Status.VERIFIED
+
+
+def test_department_manager_sees_only_his_department_requests(
+    department_manager,
+    make_client,
+    create_request,
+    organization,
+    department,
+    other_organization,
+    other_department,
+):
+    own_request = create_request(
+        status=Request.Status.VERIFIED,
+        responsible_organization=organization,
+        responsible_department=department,
+    )
+    create_request(
+        title="Foreign department request",
+        status=Request.Status.VERIFIED,
+        responsible_organization=other_organization,
+        responsible_department=other_department,
+    )
+    client = make_client(department_manager)
+
+    response = client.get("/api/requests/")
+
+    assert response.status_code == status.HTTP_200_OK
+    returned_ids = {item["id"] for item in response.data}
+    assert returned_ids == {own_request.id}
 
 
 def test_admin_can_change_request_status(admin_user, make_client, create_request):
