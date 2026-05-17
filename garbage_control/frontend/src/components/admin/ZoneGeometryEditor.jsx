@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import L from "leaflet";
 import {
+  AttributionControl,
   CircleMarker,
   MapContainer,
   Polygon,
@@ -373,7 +374,9 @@ export default function ZoneGeometryEditor({ value, onChange }) {
             center={DEFAULT_CENTER}
             zoom={DEFAULT_ZOOM}
             className="gc-map__canvas"
+            attributionControl={false}
           >
+            <AttributionControl prefix={false} position="bottomright" />
             <TileLayer
               attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
               url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"

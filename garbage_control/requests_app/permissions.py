@@ -49,3 +49,11 @@ class IsDepartmentManagerOrAdmin(HasRole):
 
 class IsAdminRole(HasRole):
     allowed_roles = {"ADMIN"}
+
+
+class IsRouteManagerRole(HasRole):
+    allowed_roles = {"ORG_MANAGER", "DEPARTMENT_MANAGER", "ADMIN"}
+
+
+class IsRouteWorkerOrManagerOrAdmin(HasRole):
+    allowed_roles = {"WORKER", "ORG_MANAGER", "DEPARTMENT_MANAGER", "ADMIN"}

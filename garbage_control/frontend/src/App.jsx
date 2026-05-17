@@ -32,6 +32,8 @@ import AdminZones from "./pages/admin/AdminZones";
 import AdminLayout from "./pages/admin/AdminLayout";
 import WorkerRequests from "./pages/worker/WorkerRequests";
 import WorkerRequestDetail from "./pages/worker/WorkerRequestDetail";
+import RoutesPage from "./pages/routes/RoutesPage";
+import RouteDetailPage from "./pages/routes/RouteDetailPage";
 
 import { bootstrapAuth, getMe, logoutUser } from "./api/auth";
 
@@ -136,6 +138,22 @@ export default function App() {
             </RoleGuard>
           }
         />
+        <Route
+          path="/worker/routes"
+          element={
+            <RoleGuard authed={authed} role={me?.role} allow={["WORKER"]}>
+              <RoutesPage role={me?.role} />
+            </RoleGuard>
+          }
+        />
+        <Route
+          path="/worker/routes/:id"
+          element={
+            <RoleGuard authed={authed} role={me?.role} allow={["WORKER"]}>
+              <RouteDetailPage role={me?.role} />
+            </RoleGuard>
+          }
+        />
 
         <Route
           path="/org/requests"
@@ -153,6 +171,22 @@ export default function App() {
             </RoleGuard>
           }
         />
+        <Route
+          path="/org/routes"
+          element={
+            <RoleGuard authed={authed} role={me?.role} allow={["ORG_MANAGER"]}>
+              <RoutesPage role={me?.role} />
+            </RoleGuard>
+          }
+        />
+        <Route
+          path="/org/routes/:id"
+          element={
+            <RoleGuard authed={authed} role={me?.role} allow={["ORG_MANAGER"]}>
+              <RouteDetailPage role={me?.role} />
+            </RoleGuard>
+          }
+        />
 
         <Route
           path="/department/requests"
@@ -167,6 +201,22 @@ export default function App() {
           element={
             <RoleGuard authed={authed} role={me?.role} allow={["DEPARTMENT_MANAGER"]}>
               <DepartmentRequestDetail />
+            </RoleGuard>
+          }
+        />
+        <Route
+          path="/department/routes"
+          element={
+            <RoleGuard authed={authed} role={me?.role} allow={["DEPARTMENT_MANAGER"]}>
+              <RoutesPage role={me?.role} />
+            </RoleGuard>
+          }
+        />
+        <Route
+          path="/department/routes/:id"
+          element={
+            <RoleGuard authed={authed} role={me?.role} allow={["DEPARTMENT_MANAGER"]}>
+              <RouteDetailPage role={me?.role} />
             </RoleGuard>
           }
         />

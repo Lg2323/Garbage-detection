@@ -14,6 +14,8 @@ from .models import (
     Request,
     RequestAssignment,
     RequestStatusHistory,
+    Route,
+    RoutePoint,
     ResponsibilityZone,
     TerritoryType,
 )
@@ -137,3 +139,37 @@ class ExternalTransferAdmin(admin.ModelAdmin):
     list_display = ("id", "request", "target_organization", "recipient_name", "status", "sent_at")
     list_filter = ("status", "target_organization")
     search_fields = ("request__title", "recipient_name", "outgoing_number")
+
+
+class RoutePointInline(admin.TabularInline):
+    model = RoutePoint
+    extra = 0
+    autocomplete_fields = ("request",)
+    ordering = ("order_number", "id")
+
+
+@admin.register(Route)
+class RouteAdmin(admin.ModelAdmin):
+    list_display = (
+        "id",
+        "name",
+        "status",
+        "organization",
+        "department",
+        "brigade",
+        "assigned_worker",
+        "created_by",
+        "created_at",
+    )
+    list_filter = ("status", "organization", "department")
+    search_fields = ("name", "comment", "organization__name", "brigade__name", "assigned_worker__username")
+    autocomplete_fields = ("organization", "department", "brigade", "assigned_worker", "created_by")
+    inlines = (RoutePointInline,)
+
+
+@admin.register(RoutePoint)
+class RoutePointAdmin(admin.ModelAdmin):
+    list_display = ("id", "route", "order_number", "request", "address", "created_at")
+    list_filter = ("route__organization", "route__status")
+    search_fields = ("route__name", "request__title", "address")
+    autocomplete_fields = ("route", "request")

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { MapContainer, Marker, Popup, TileLayer, useMap } from "react-leaflet";
+import { AttributionControl, MapContainer, Marker, Popup, TileLayer, useMap } from "react-leaflet";
 import L from "leaflet";
 import marker2x from "leaflet/dist/images/marker-icon-2x.png";
 import marker1x from "leaflet/dist/images/marker-icon.png";
@@ -132,7 +132,15 @@ export default function CoordMap() {
 
       <div className="card p-3">
         <div className="gc-map">
-          <MapContainer ref={mapRef} center={center} zoom={11} scrollWheelZoom className="gc-map__canvas">
+          <MapContainer
+            ref={mapRef}
+            center={center}
+            zoom={11}
+            scrollWheelZoom
+            className="gc-map__canvas"
+            attributionControl={false}
+          >
+            <AttributionControl prefix={false} position="bottomright" />
             <TileLayer
               attribution="&copy; OpenStreetMap contributors"
               url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"

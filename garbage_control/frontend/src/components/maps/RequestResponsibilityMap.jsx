@@ -1,6 +1,6 @@
 import { useEffect, useMemo } from "react";
 import L from "leaflet";
-import { CircleMarker, GeoJSON, MapContainer, Popup, TileLayer, useMap } from "react-leaflet";
+import { AttributionControl, CircleMarker, GeoJSON, MapContainer, Popup, TileLayer, useMap } from "react-leaflet";
 
 function FitToContent({ center, zones }) {
   const map = useMap();
@@ -64,7 +64,8 @@ export default function RequestResponsibilityMap({
 
   return (
     <div className="gc-map gc-map--responsibility">
-      <MapContainer center={mapCenter} zoom={12} scrollWheelZoom className="gc-map__canvas">
+      <MapContainer center={mapCenter} zoom={12} scrollWheelZoom className="gc-map__canvas" attributionControl={false}>
+        <AttributionControl prefix={false} position="bottomright" />
         <TileLayer
           attribution='&copy; OpenStreetMap contributors'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"

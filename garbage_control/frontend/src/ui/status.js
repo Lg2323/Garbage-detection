@@ -1,10 +1,13 @@
 export const STATUS_LABELS = {
   CREATED: "Создана",
   VERIFIED: "Верифицирована",
+  DRAFT: "Черновик",
+  ASSIGNED: "Назначен",
   IN_PROGRESS: "В работе",
   ON_CHECK: "На проверке",
   COMPLETED: "Завершена",
   TRANSFERRED: "Передана по принадлежности",
+  CANCELLED: "Отменен",
 };
 
 export const HANDLING_MODE_LABELS = {

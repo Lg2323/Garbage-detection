@@ -1,5 +1,6 @@
 from django.conf import settings
 from django.contrib.gis.db import models
+from django.core.exceptions import ValidationError
 
 User = settings.AUTH_USER_MODEL
 
@@ -441,6 +442,140 @@ class Request(models.Model):
 
     def __str__(self):
         return f"#{self.pk} {self.title}"
+
+
+class Route(models.Model):
+    class Status(models.TextChoices):
+        DRAFT = "DRAFT", "Черновик"
+        ASSIGNED = "ASSIGNED", "Назначен"
+        IN_PROGRESS = "IN_PROGRESS", "В работе"
+        COMPLETED = "COMPLETED", "Завершен"
+        CANCELLED = "CANCELLED", "Отменен"
+
+    organization = models.ForeignKey(
+        Organization,
+        on_delete=models.PROTECT,
+        related_name="routes",
+    )
+    department = models.ForeignKey(
+        Department,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="routes",
+    )
+    brigade = models.ForeignKey(
+        Brigade,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="routes",
+    )
+    assigned_worker = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="assigned_routes",
+    )
+    created_by = models.ForeignKey(
+        User,
+        on_delete=models.PROTECT,
+        related_name="created_routes",
+    )
+    name = models.CharField(max_length=180)
+    status = models.CharField(max_length=20, choices=Status.choices, default=Status.DRAFT, db_index=True)
+    comment = models.TextField(blank=True, default="")
+    route_geometry = models.JSONField(null=True, blank=True)
+    distance_meters = models.FloatField(null=True, blank=True)
+    duration_seconds = models.FloatField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Маршрут"
+        verbose_name_plural = "Маршруты"
+        ordering = ("-created_at", "-id")
+        indexes = [
+            models.Index(fields=("status", "created_at"), name="route_status_created_idx"),
+            models.Index(fields=("organization", "status"), name="route_org_status_idx"),
+        ]
+
+    def clean(self):
+        errors = {}
+
+        if self.department_id and self.department.organization_id != self.organization_id:
+            errors["department"] = "Подразделение не относится к организации маршрута."
+
+        if self.brigade_id:
+            if self.brigade.organization_id != self.organization_id:
+                errors["brigade"] = "Бригада не относится к организации маршрута."
+            elif self.department_id and self.brigade.department_id != self.department_id:
+                errors["brigade"] = "Бригада не относится к подразделению маршрута."
+
+        if self.assigned_worker_id:
+            if getattr(self.assigned_worker, "role", None) != "WORKER":
+                errors["assigned_worker"] = "Назначить можно только исполнителя."
+            elif self.assigned_worker.organization_id != self.organization_id:
+                errors["assigned_worker"] = "Исполнитель не относится к организации маршрута."
+            elif self.department_id and self.assigned_worker.department_id != self.department_id:
+                errors["assigned_worker"] = "Исполнитель не относится к подразделению маршрута."
+
+        if errors:
+            raise ValidationError(errors)
+
+    def __str__(self):
+        return f"{self.name} ({self.organization})"
+
+
+class RoutePoint(models.Model):
+    route = models.ForeignKey(
+        Route,
+        on_delete=models.CASCADE,
+        related_name="points",
+    )
+    request = models.ForeignKey(
+        Request,
+        on_delete=models.PROTECT,
+        related_name="route_points",
+    )
+    order_number = models.PositiveIntegerField()
+    address = models.CharField(max_length=255, blank=True, default="")
+    location = models.PointField(geography=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Точка маршрута"
+        verbose_name_plural = "Точки маршрута"
+        ordering = ("order_number", "id")
+        constraints = [
+            models.UniqueConstraint(
+                fields=("route", "request"),
+                name="uniq_route_point_request",
+            ),
+            models.UniqueConstraint(
+                fields=("route", "order_number"),
+                name="uniq_route_point_order",
+            ),
+        ]
+
+    def clean(self):
+        errors = {}
+
+        if self.request_id and self.route_id:
+            if self.request.responsible_organization_id != self.route.organization_id:
+                errors["request"] = "Заявка не относится к организации маршрута."
+            elif self.route.department_id and self.request.responsible_department_id != self.route.department_id:
+                errors["request"] = "Заявка не относится к подразделению маршрута."
+
+            if self.request.status in (Request.Status.COMPLETED, Request.Status.TRANSFERRED):
+                errors["request"] = "Завершенные и переданные заявки нельзя добавлять в маршрут."
+
+        if errors:
+            raise ValidationError(errors)
+
+    def __str__(self):
+        return f"{self.route} - #{self.order_number}"
 
 
 class RequestRework(models.Model):

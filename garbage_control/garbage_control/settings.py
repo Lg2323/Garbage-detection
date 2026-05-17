@@ -152,8 +152,8 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 AUTH_USER_MODEL = 'users.User'
 
-# Email / password reset
 FRONTEND_BASE_URL = os.getenv("FRONTEND_BASE_URL", "http://localhost:3000")
+OSRM_BASE_URL = os.getenv("OSRM_BASE_URL", "https://router.project-osrm.org")
 
 def _as_bool(value: str, default: bool = False) -> bool:
     if value is None:
