@@ -65,6 +65,31 @@ class RequestViewSet(ModelViewSet):
         "title_desc": "-title",
     }
 
+    @staticmethod
+    def _extract_precheck_details(request_obj):
+        existing_details = (
+            VerificationResult.objects.filter(request=request_obj)
+            .values_list("details", flat=True)
+            .first()
+        )
+        if not isinstance(existing_details, dict):
+            return None
+        if isinstance(existing_details.get("precheck"), dict):
+            return existing_details["precheck"]
+        if existing_details.get("stage") == "before":
+            return existing_details
+        return None
+
+    def _compose_verification_details(self, request_obj, details):
+        payload = dict(details or {})
+        if payload.get("stage") == "before":
+            return payload
+
+        precheck_details = self._extract_precheck_details(request_obj)
+        if precheck_details:
+            payload["precheck"] = precheck_details
+        return payload
+
     def _get_base_queryset(self):
         return Request.objects.select_related(
             "created_by",
@@ -903,7 +928,7 @@ class RequestViewSet(ModelViewSet):
             defaults={
                 "is_clean": out.is_clean,
                 "score": out.score,
-                "details": out.details,
+                "details": self._compose_verification_details(req, out.details),
             },
         )
 
@@ -1038,7 +1063,7 @@ class RequestViewSet(ModelViewSet):
             defaults={
                 "is_clean": out.is_clean,
                 "score": out.score,
-                "details": out.details,
+                "details": self._compose_verification_details(req, out.details),
             },
         )
 

@@ -11,21 +11,11 @@ Garbage-detection
 │  └─ vcs.xml
 ├─ garbage_control
 │  ├─ .dockerignore
-│  ├─ .pytest_cache
-│  │  ├─ CACHEDIR.TAG
-│  │  ├─ README.md
-│  │  └─ v
-│  │     └─ cache
-│  │        └─ nodeids
 │  ├─ ai_verification
 │  │  ├─ models
 │  │  │  └─ best.pt
 │  │  ├─ services.py
-│  │  ├─ __init__.py
-│  │  └─ __pycache__
-│  │     ├─ __init__.cpython-310.pyc
-│  │     ├─ __init__.cpython-310.pyc.1820082830160
-│  │     └─ __init__.cpython-310.pyc.2483556957008
+│  │  └─ __init__.py
 │  ├─ commands.txt
 │  ├─ docker-compose.yml
 │  ├─ Dockerfile
@@ -34,36 +24,12 @@ Garbage-detection
 │  │  │  ├─ assets
 │  │  │  │  ├─ bootstrap-icons-BeopsB42.woff
 │  │  │  │  ├─ bootstrap-icons-mSm7cUeB.woff2
-│  │  │  │  ├─ index-8AlkVHr_.js
-│  │  │  │  ├─ index-BhRtctbP.css
-│  │  │  │  ├─ index-BlO_Hw8k.css
-│  │  │  │  ├─ index-Boijufwm.js
-│  │  │  │  ├─ index-BYrTwZAm.css
-│  │  │  │  ├─ index-C-U-Rr0n.css
-│  │  │  │  ├─ index-C66ohIkf.css
-│  │  │  │  ├─ index-CAqdxwnv.js
-│  │  │  │  ├─ index-CbNekShX.js
-│  │  │  │  ├─ index-CGyvh5ev.js
-│  │  │  │  ├─ index-CjBVQYTD.css
-│  │  │  │  ├─ index-CKBDffjE.js
-│  │  │  │  ├─ index-Cn7Euekx.js
-│  │  │  │  ├─ index-CvzFRBYk.css
-│  │  │  │  ├─ index-CXQWIMQz.js
-│  │  │  │  ├─ index-Dcb_hy2v.js
-│  │  │  │  ├─ index-DCLBjI1Z.css
-│  │  │  │  ├─ index-DFZLbDPW.js
-│  │  │  │  ├─ index-DG68t6O5.js
-│  │  │  │  ├─ index-DGYmSNzt.js
-│  │  │  │  ├─ index-DH0HNIfZ.js
-│  │  │  │  ├─ index-DkX4e42Z.js
-│  │  │  │  ├─ index-DquMNAnC.css
-│  │  │  │  ├─ index-DVRLKTJt.js
-│  │  │  │  ├─ index-hLu67rLQ.css
-│  │  │  │  ├─ index-iX2U4blB.js
-│  │  │  │  ├─ index-KuBLxAKA.js
-│  │  │  │  ├─ index-QWWULutV.css
-│  │  │  │  ├─ index-XwZXX-rv.css
-│  │  │  │  ├─ index-zrOoCF96.js
+│  │  │  │  ├─ index-BghILpJc.js
+│  │  │  │  ├─ index-CoWw6bk7.css
+│  │  │  │  ├─ index-CX3fYTQ3.js
+│  │  │  │  ├─ index-DbO57IN-.css
+│  │  │  │  ├─ index-DHclw705.js
+│  │  │  │  ├─ index-Kc8OZC2v.js
 │  │  │  │  └─ logo-DQ05JSJt.png
 │  │  │  ├─ index.html
 │  │  │  └─ vite.svg
@@ -81,6 +47,7 @@ Garbage-detection
 │  │  │  │  ├─ coord.js
 │  │  │  │  ├─ http.js
 │  │  │  │  ├─ requests.js
+│  │  │  │  ├─ routes.js
 │  │  │  │  └─ user.js
 │  │  │  ├─ App.jsx
 │  │  │  ├─ assets
@@ -102,7 +69,8 @@ Garbage-detection
 │  │  │  │  │  └─ CompletedRequestCard.jsx
 │  │  │  │  ├─ FileDropzone.jsx
 │  │  │  │  ├─ maps
-│  │  │  │  │  └─ RequestResponsibilityMap.jsx
+│  │  │  │  │  ├─ RequestResponsibilityMap.jsx
+│  │  │  │  │  └─ RouteMap.jsx
 │  │  │  │  ├─ Notice.jsx
 │  │  │  │  ├─ Pagination.jsx
 │  │  │  │  ├─ PasswordInput.jsx
@@ -122,6 +90,7 @@ Garbage-detection
 │  │  │  │  │  ├─ AdminDashboard.jsx
 │  │  │  │  │  ├─ AdminDirectories.jsx
 │  │  │  │  │  ├─ AdminLayout.jsx
+│  │  │  │  │  ├─ AdminRequestDetail.jsx
 │  │  │  │  │  ├─ AdminRequests.jsx
 │  │  │  │  │  ├─ AdminUsers.jsx
 │  │  │  │  │  └─ AdminZones.jsx
@@ -132,6 +101,9 @@ Garbage-detection
 │  │  │  │  │  ├─ CoordRequestDetail.jsx
 │  │  │  │  │  └─ CoordRequests.jsx
 │  │  │  │  ├─ CreateRequest.jsx
+│  │  │  │  ├─ department
+│  │  │  │  │  ├─ DepartmentRequestDetail.jsx
+│  │  │  │  │  └─ DepartmentRequests.jsx
 │  │  │  │  ├─ Faq.jsx
 │  │  │  │  ├─ ForgotPassword.jsx
 │  │  │  │  ├─ Login.jsx
@@ -143,6 +115,9 @@ Garbage-detection
 │  │  │  │  ├─ Register.jsx
 │  │  │  │  ├─ RequestsList.jsx
 │  │  │  │  ├─ ResetPassword.jsx
+│  │  │  │  ├─ routes
+│  │  │  │  │  ├─ RouteDetailPage.jsx
+│  │  │  │  │  └─ RoutesPage.jsx
 │  │  │  │  └─ worker
 │  │  │  │     ├─ WorkerRequestDetail.jsx
 │  │  │  │     └─ WorkerRequests.jsx
@@ -154,6 +129,7 @@ Garbage-detection
 │  │  │  ├─ ui
 │  │  │  │  └─ status.js
 │  │  │  └─ utils
+│  │  │     ├─ apiErrors.js
 │  │  │     ├─ geocoding.js
 │  │  │     └─ requestFilters.js
 │  │  └─ vite.config.js
@@ -162,26 +138,17 @@ Garbage-detection
 │  │  ├─ settings.py
 │  │  ├─ urls.py
 │  │  ├─ wsgi.py
-│  │  ├─ __init__.py
-│  │  └─ __pycache__
-│  │     ├─ settings.cpython-310.pyc
-│  │     ├─ settings.cpython-310.pyc.1820082822416
-│  │     ├─ settings.cpython-310.pyc.2483547362512
-│  │     ├─ settings.cpython-311.pyc
-│  │     ├─ settings.cpython-313.pyc
-│  │     ├─ __init__.cpython-310.pyc
-│  │     ├─ __init__.cpython-310.pyc.1820082822064
-│  │     ├─ __init__.cpython-310.pyc.2483547362160
-│  │     ├─ __init__.cpython-311.pyc
-│  │     └─ __init__.cpython-313.pyc
+│  │  └─ __init__.py
 │  ├─ manage.py
 │  ├─ media
 │  │  └─ requests
 │  │     ├─ after
 │  │     │  ├─ after.jpg
 │  │     │  ├─ after_1.png
+│  │     │  ├─ after_1_DPOjyxi.png
 │  │     │  ├─ after_1_Nq92uTL.png
 │  │     │  ├─ after_2.png
+│  │     │  ├─ after_2_Fnoi7EG.png
 │  │     │  ├─ after_n1c40lQ.jpg
 │  │     │  ├─ after_seed_01_almet_containers.jpg
 │  │     │  ├─ after_seed_02_almet_park.jpg
@@ -194,10 +161,14 @@ Garbage-detection
 │  │     └─ before
 │  │        ├─ 1800x.jpg
 │  │        ├─ 1800x_61Ltmys.jpg
+│  │        ├─ 1800x_8GpqV6K.jpg
+│  │        ├─ 1800x_cojkuDs.jpg
 │  │        ├─ 1800x_rc08g7u.jpg
+│  │        ├─ 328e2a5b-bc65-4a7f-88c3-c5917f63af12.jpg
 │  │        ├─ 5.jpeg
 │  │        ├─ 659f322ebb2dbf3967aaec84b9eff358.jpg
 │  │        ├─ 72iz1AhT.jpg
+│  │        ├─ 72iz1AhT_gvAG4ms.jpg
 │  │        ├─ after.jpg
 │  │        ├─ after_1.png
 │  │        ├─ after_1FJSPaW.jpg
@@ -216,6 +187,7 @@ Garbage-detection
 │  │        ├─ p19ovpi1jvr6f117u1vc0m04brm5_5qPzJgx.jpg
 │  │        ├─ p19ovpi1jvr6f117u1vc0m04brm5_GrHWAkz.jpg
 │  │        ├─ p19ovpi1jvr6f117u1vc0m04brm5_MZfIHel.jpg
+│  │        ├─ p19ovpi1jvr6f117u1vc0m04brm5_Zt5ZDtc.jpg
 │  │        ├─ photo_2026-01-06_06-00-59.jpg
 │  │        ├─ photo_2026-01-06_06-00-59_6ehDjor.jpg
 │  │        ├─ photo_2026-01-06_06-00-59_9SZkyB8.jpg
@@ -242,26 +214,6 @@ Garbage-detection
 │  │        ├─ XXXL_13W7viP.jpg
 │  │        ├─ Снимок_экрана_2026-01-28_220751.png
 │  │        └─ Снимок_экрана_2026-01-28_220751_7w5tsHA.png
-│  ├─ mediafiles
-│  │  ├─ admin.py
-│  │  ├─ apps.py
-│  │  ├─ migrations
-│  │  │  └─ __init__.py
-│  │  ├─ models.py
-│  │  ├─ tests.py
-│  │  ├─ views.py
-│  │  ├─ __init__.py
-│  │  └─ __pycache__
-│  │     ├─ apps.cpython-310.pyc
-│  │     ├─ apps.cpython-310.pyc.1820085350960
-│  │     ├─ apps.cpython-310.pyc.2483560478512
-│  │     ├─ apps.cpython-311.pyc
-│  │     ├─ apps.cpython-313.pyc
-│  │     ├─ __init__.cpython-310.pyc
-│  │     ├─ __init__.cpython-310.pyc.1820084483920
-│  │     ├─ __init__.cpython-310.pyc.2483559938880
-│  │     ├─ __init__.cpython-311.pyc
-│  │     └─ __init__.cpython-313.pyc
 │  ├─ pytest.ini
 │  ├─ requests_app
 │  │  ├─ admin.py
@@ -276,34 +228,31 @@ Garbage-detection
 │  │  │  ├─ 0004_alter_request_options_and_more.py
 │  │  │  ├─ 0005_federalsubject_locality_organizationtype_and_more.py
 │  │  │  ├─ 0006_seed_reference_data.py
+│  │  │  ├─ 0007_route_routepoint_route_route_status_created_idx_and_more.py
+│  │  │  ├─ 0008_route_distance_meters_route_duration_seconds_and_more.py
 │  │  │  └─ __init__.py
 │  │  ├─ models.py
 │  │  ├─ permissions.py
+│  │  ├─ route_serializers.py
+│  │  ├─ route_services.py
+│  │  ├─ route_views.py
 │  │  ├─ serializers.py
+│  │  ├─ services
+│  │  │  ├─ routing.py
+│  │  │  ├─ __init__.py
+│  │  │  └─ __pycache__
+│  │  │     └─ routing.cpython-310.pyc
 │  │  ├─ static
 │  │  │  └─ admin
 │  │  │     └─ lock_location_map.js
 │  │  ├─ tests.py
+│  │  ├─ tests_routes.py
 │  │  ├─ urls.py
 │  │  ├─ views.py
-│  │  ├─ __init__.py
-│  │  └─ __pycache__
-│  │     ├─ apps.cpython-310.pyc
-│  │     ├─ apps.cpython-310.pyc.1820084481904
-│  │     ├─ apps.cpython-310.pyc.2483559936864
-│  │     ├─ apps.cpython-311.pyc
-│  │     ├─ apps.cpython-313.pyc
-│  │     ├─ geocoding.cpython-310.pyc.3143102555056
-│  │     ├─ __init__.cpython-310.pyc
-│  │     ├─ __init__.cpython-310.pyc.1820084483248
-│  │     ├─ __init__.cpython-310.pyc.2483559938208
-│  │     ├─ __init__.cpython-311.pyc
-│  │     └─ __init__.cpython-313.pyc
+│  │  └─ __init__.py
 │  ├─ requirements.txt
 │  ├─ scripts
-│  │  ├─ reset_and_seed_demo.py
-│  │  └─ __pycache__
-│  │     └─ reset_and_seed_demo.cpython-310.pyc
+│  │  └─ reset_and_seed_demo.py
 │  ├─ tests
 │  │  ├─ conftest.py
 │  │  ├─ test_auth.py
@@ -324,6 +273,7 @@ Garbage-detection
 │     │  ├─ 0004_user_city.py
 │     │  ├─ 0005_user_department_user_organization_alter_user_role.py
 │     │  ├─ 0006_populate_user_affiliations.py
+│     │  ├─ 0007_alter_user_role_department_manager.py
 │     │  └─ __init__.py
 │     ├─ models.py
 │     ├─ permissions.py
@@ -331,19 +281,7 @@ Garbage-detection
 │     ├─ tests.py
 │     ├─ urls.py
 │     ├─ views.py
-│     ├─ __init__.py
-│     └─ __pycache__
-│        ├─ apps.cpython-310.pyc
-│        ├─ apps.cpython-310.pyc.1820085350640
-│        ├─ apps.cpython-310.pyc.2483560478192
-│        ├─ apps.cpython-311.pyc
-│        ├─ apps.cpython-313.pyc
-│        ├─ __init__.cpython-310.pyc
-│        ├─ __init__.cpython-310.pyc.1820085350320
-│        ├─ __init__.cpython-310.pyc.2483560477872
-│        ├─ __init__.cpython-311.pyc
-│        └─ __init__.cpython-313.pyc
-├─ README.md
-└─ Галлямов.docx
+│     └─ __init__.py
+└─ README.md
 
 ```

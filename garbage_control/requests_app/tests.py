@@ -428,6 +428,55 @@ class RequestWorkflowApiTests(APITestCase):
         self.assertTrue(bool(request_obj.after_photo))
 
     @patch("requests_app.views.verify_cleanup")
+    def test_ai_verification_keeps_primary_precheck_details(self, mock_verify_cleanup):
+        mock_verify_cleanup.side_effect = [
+            AIVerifyOutput(
+                is_clean=False,
+                score=0.60,
+                details={"before_count": 5, "after_count": 2, "reduction": 0.60},
+            ),
+            AIVerifyOutput(
+                is_clean=True,
+                score=1.0,
+                details={"before_count": 5, "after_count": 0, "reduction": 1.0},
+            ),
+        ]
+        request_obj = self.create_request(
+            status_value=Request.Status.IN_PROGRESS,
+            assigned_worker=self.worker,
+            responsible_organization=self.organization,
+            responsible_department=self.department,
+            assigned_brigade=self.brigade,
+        )
+        VerificationResult.objects.create(
+            request=request_obj,
+            is_clean=False,
+            details={"stage": "before", "before_count": 5, "conf_threshold": 0.25},
+        )
+
+        upload_response = self.worker_client.post(
+            f"/api/requests/{request_obj.id}/upload_after_photo/",
+            {"after_photo": make_test_image("upload_after_with_precheck.jpg", color=(120, 160, 140))},
+            format="multipart",
+        )
+
+        self.assertEqual(upload_response.status_code, status.HTTP_200_OK)
+        verification = VerificationResult.objects.get(request=request_obj)
+        self.assertEqual(verification.details["precheck"]["before_count"], 5)
+        self.assertEqual(verification.details["after_count"], 2)
+
+        verify_response = self.coordinator_client.post(
+            f"/api/requests/{request_obj.id}/verify/",
+            {},
+            format="json",
+        )
+
+        self.assertEqual(verify_response.status_code, status.HTTP_200_OK)
+        verification.refresh_from_db()
+        self.assertEqual(verification.details["precheck"]["before_count"], 5)
+        self.assertEqual(verification.details["after_count"], 0)
+
+    @patch("requests_app.views.verify_cleanup")
     def test_coordinator_can_verify_request_and_complete_it(self, mock_verify_cleanup):
         mock_verify_cleanup.return_value = AIVerifyOutput(
             is_clean=True,
