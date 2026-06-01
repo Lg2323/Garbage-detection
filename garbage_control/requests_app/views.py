@@ -36,6 +36,7 @@ from .serializers import (
     AdminSetStatusSerializer,
     AssignWorkerSerializer,
     ClassifyRequestSerializer,
+    ConfirmPrimaryCheckSerializer,
     DepartmentAssignSerializer,
     ExternalTransferCreateSerializer,
     OrganizationAssignSerializer,
@@ -303,7 +304,7 @@ class RequestViewSet(ModelViewSet):
         if self.action == "create":
             return [IsAuthenticated(), IsCitizen()]
 
-        if self.action in ("classify", "external_transfer", "return_to_work", "verify"):
+        if self.action in ("classify", "confirm_primary_check", "external_transfer", "return_to_work", "verify"):
             return [IsAuthenticated(), IsCoordinator()]
 
         if self.action in ("organization_assign",):
@@ -452,6 +453,35 @@ class RequestViewSet(ModelViewSet):
             previous_status,
             changed_by=request.user,
             comment="Заявка верифицирована после классификации.",
+        )
+
+        detail = RequestDetailSerializer(req, context={"request": request})
+        return Response(detail.data, status=status.HTTP_200_OK)
+
+    @action(detail=True, methods=["post"], url_path="confirm-primary-check")
+    def confirm_primary_check(self, request, pk=None):
+        req = self.get_object()
+
+        if req.status != Request.Status.CREATED:
+            return Response(
+                {"error": "Ручное подтверждение доступно только для заявки после первичной AI-проверки."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        ser = ConfirmPrimaryCheckSerializer(data=request.data)
+        ser.is_valid(raise_exception=True)
+        comment = ser.validated_data["comment"].strip()
+
+        previous_status = req.status
+        req.status = Request.Status.VERIFIED
+        req.coordinator = request.user
+        req.save(update_fields=["status", "coordinator", "updated_at"])
+
+        self._create_status_history_if_changed(
+            req,
+            previous_status,
+            changed_by=request.user,
+            comment=f"Координатор вручную подтвердил заявку после первичной AI-проверки. Комментарий: {comment}",
         )
 
         detail = RequestDetailSerializer(req, context={"request": request})

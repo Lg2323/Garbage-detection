@@ -64,6 +64,11 @@ export async function classifyRequest(id, payload) {
   return res.data;
 }
 
+export async function confirmPrimaryCheck(id, payload) {
+  const res = await http.post(`/api/requests/${id}/confirm-primary-check/`, payload);
+  return res.data;
+}
+
 export async function externalTransferRequest(id, payload) {
   const res = await http.post(`/api/requests/${id}/external-transfer/`, payload);
   return res.data;

@@ -4,6 +4,7 @@ import Notice from "../../components/Notice";
 import RequestResponsibilityMap from "../../components/maps/RequestResponsibilityMap";
 import {
   classifyRequest,
+  confirmPrimaryCheck,
   externalTransferRequest,
   getRequest,
   getRequestReferenceOptions,
@@ -269,6 +270,7 @@ export default function CoordRequestDetail() {
   const [options, setOptions] = useState(null);
   const [classificationForm, setClassificationForm] = useState(buildClassificationForm(null));
   const [transferForm, setTransferForm] = useState(INITIAL_TRANSFER_FORM);
+  const [primaryConfirmComment, setPrimaryConfirmComment] = useState("");
   const [returnComment, setReturnComment] = useState("");
   const [zoneQuery, setZoneQuery] = useState("");
   const [zoneMatchFilter, setZoneMatchFilter] = useState("all");
@@ -302,6 +304,7 @@ export default function CoordRequestDetail() {
     setZoneQuery("");
     setZoneMatchFilter("all");
     setZoneOrganizationFilter("");
+    setPrimaryConfirmComment("");
   }, [id]);
 
   const municipalities = useMemo(() => {
@@ -465,6 +468,30 @@ export default function CoordRequestDetail() {
     }
   };
 
+  const doConfirmPrimaryCheck = async () => {
+    const comment = primaryConfirmComment.trim();
+    if (comment.length < 5) {
+      setMsg({ type: "warning", text: "Укажите комментарий для ручного подтверждения." });
+      return;
+    }
+
+    setMsg(null);
+    setBusy(true);
+    try {
+      await confirmPrimaryCheck(id, { comment });
+      setPrimaryConfirmComment("");
+      await load();
+      setMsg({ type: "success", text: "Заявка вручную подтверждена после первичной AI-проверки." });
+    } catch (error) {
+      setMsg({
+        type: "danger",
+        text: formatApiError(error, "Ошибка ручного подтверждения заявки."),
+      });
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const doReturnToWork = async () => {
     if (!returnComment.trim()) {
       setMsg({ type: "warning", text: "Укажите комментарий для возврата на доработку." });
@@ -491,6 +518,7 @@ export default function CoordRequestDetail() {
   };
 
   const canOperate = options?.current_user?.role === "COORDINATOR";
+  const canConfirmPrimaryCheck = canOperate && requestItem?.status === "CREATED";
 
   if (!requestItem || !options) {
     return <div className="card p-3">Загрузка...</div>;
@@ -965,6 +993,28 @@ export default function CoordRequestDetail() {
               <VerificationStage {...primaryVerification} />
               <VerificationStage {...resultVerification} />
             </div>
+
+            {canConfirmPrimaryCheck && (
+              <div className="gc-info-block mt-3">
+                <div className="fw-semibold mb-2">Ручное подтверждение первичной проверки</div>
+                <textarea
+                  className="form-control"
+                  rows={3}
+                  value={primaryConfirmComment}
+                  onChange={(event) => setPrimaryConfirmComment(event.target.value)}
+                  placeholder="Почему заявка подтверждается вручную"
+                />
+                <div className="d-flex justify-content-end mt-2">
+                  <button
+                    className="btn btn-outline-primary"
+                    onClick={doConfirmPrimaryCheck}
+                    disabled={busy || primaryConfirmComment.trim().length < 5}
+                  >
+                    Подтвердить заявку вручную
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
         <div className="col-xl-3">

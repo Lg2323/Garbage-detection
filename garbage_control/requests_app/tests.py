@@ -300,6 +300,41 @@ class RequestWorkflowApiTests(APITestCase):
             ).exists()
         )
 
+    def test_coordinator_can_confirm_primary_check_manually(self):
+        request_obj = self.create_request(status_value=Request.Status.CREATED)
+
+        response = self.coordinator_client.post(
+            f"/api/requests/{request_obj.id}/confirm-primary-check/",
+            {"comment": "На фото видны мешки и строительный мусор, AI ошибся."},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        request_obj.refresh_from_db()
+        self.assertEqual(request_obj.status, Request.Status.VERIFIED)
+        self.assertEqual(request_obj.coordinator, self.coordinator)
+        self.assertTrue(
+            RequestStatusHistory.objects.filter(
+                request=request_obj,
+                status=Request.Status.VERIFIED,
+                changed_by=self.coordinator,
+                comment__icontains="вручную подтвердил",
+            ).exists()
+        )
+
+    def test_coordinator_cannot_confirm_primary_check_without_comment(self):
+        request_obj = self.create_request(status_value=Request.Status.CREATED)
+
+        response = self.coordinator_client.post(
+            f"/api/requests/{request_obj.id}/confirm-primary-check/",
+            {"comment": ""},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        request_obj.refresh_from_db()
+        self.assertEqual(request_obj.status, Request.Status.CREATED)
+
     def test_org_manager_sees_only_requests_of_his_organization(self):
         own_request = self.create_request(
             status_value=Request.Status.VERIFIED,

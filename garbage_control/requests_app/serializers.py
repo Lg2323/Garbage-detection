@@ -563,6 +563,10 @@ class VerifyRequestSerializer(serializers.Serializer):
     force = serializers.BooleanField(required=False, default=False)
 
 
+class ConfirmPrimaryCheckSerializer(serializers.Serializer):
+    comment = serializers.CharField(min_length=5, max_length=2000)
+
+
 class AdminSetStatusSerializer(serializers.Serializer):
     status = serializers.ChoiceField(choices=Request.Status.choices)
 
