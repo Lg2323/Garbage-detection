@@ -26,6 +26,18 @@ services:
       DB_PASSWORD: postgres
       DB_HOST: db
       DB_PORT: "5432"
+      EMAIL_BACKEND: django.core.mail.backends.smtp.EmailBackend
+      DEFAULT_FROM_EMAIL: emilka22866@mail.ru
+      EMAIL_HOST: smtp.mail.ru
+      EMAIL_PORT: "587"
+      EMAIL_HOST_USER: emilka22866@mail.ru
+      EMAIL_HOST_PASSWORD: N9PixYSevoNYL0BndnrZ
+      EMAIL_USE_TLS: "True"
+      FRONTEND_BASE_URL: "http://localhost:3000"
+      YANDEX_GEOCODER_API_KEY: "78f20bd4-10d4-4100-9d65-5114f1733cfd"
+      AI_CONF_THRESHOLD: "0.4"
+      AI_MIN_REDUCTION: "0.8"
+      AI_MAX_AFTER: "0"
 
   frontend:
     image: node:20-alpine
@@ -33,9 +45,11 @@ services:
     working_dir: /app
     volumes:
       - ./frontend:/app
+      - frontend_node_modules:/app/node_modules
     ports:
       - "3000:3000"
-    command: sh -c "npm install && npm run dev -- --host 0.0.0.0 --port 3000"
+    command: sh -c "if [ -x node_modules/.bin/vite ]; then npm run dev -- --host 0.0.0.0 --port 3000; elif [ -f dist/index.html ]; then node serve-dist.mjs; else npm ci --no-audit --no-fund && npm run dev -- --host 0.0.0.0 --port 3000; fi"
 
 volumes:
   pgdata:
+  frontend_node_modules:

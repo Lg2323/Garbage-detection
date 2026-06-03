@@ -4,26 +4,50 @@ from django.db import models
 
 class User(AbstractUser):
     class Role(models.TextChoices):
-        CITIZEN = 'CITIZEN', 'Гражданин'
-        WORKER = 'WORKER', 'Исполнитель'
-        COORDINATOR = 'COORDINATOR', 'Координатор'
-        ADMIN = 'ADMIN', 'Администратор'
+        CITIZEN = "CITIZEN", "Гражданин"
+        WORKER = "WORKER", "Исполнитель"
+        COORDINATOR = "COORDINATOR", "Координатор"
+        ORG_MANAGER = "ORG_MANAGER", "Руководитель организации"
+        DEPARTMENT_MANAGER = "DEPARTMENT_MANAGER", "Руководитель подразделения"
+        ADMIN = "ADMIN", "Администратор"
 
     role = models.CharField(
         max_length=20,
         choices=Role.choices,
-        default=Role.CITIZEN
+        default=Role.CITIZEN,
     )
 
     phone = models.CharField(
         max_length=20,
         blank=True,
-        null=True
+        null=True,
+    )
+
+    city = models.CharField(
+        max_length=120,
+        blank=True,
+        default="",
+    )
+
+    organization = models.ForeignKey(
+        "requests_app.Organization",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="users",
+    )
+
+    department = models.ForeignKey(
+        "requests_app.Department",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="users",
     )
 
     def __str__(self):
         return f"{self.username} ({self.role})"
 
     class Meta:
-        verbose_name = 'Пользователь'
-        verbose_name_plural = 'Пользователи'
+        verbose_name = "Пользователь"
+        verbose_name_plural = "Пользователи"
