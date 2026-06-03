@@ -1,4 +1,5 @@
 import { useState } from "react";
+import BootstrapIcon from "./BootstrapIcon";
 
 export default function PasswordInput({ className = "form-control", ...props }) {
   const [visible, setVisible] = useState(false);
@@ -18,7 +19,7 @@ export default function PasswordInput({ className = "form-control", ...props }) 
         aria-pressed={visible}
         title={visible ? "Hide password" : "Show password"}
       >
-        <i className={`bi ${visible ? "bi-eye-slash" : "bi-eye"}`} aria-hidden="true" />
+        <BootstrapIcon name={visible ? "eye-slash" : "eye"} />
       </button>
     </div>
   );

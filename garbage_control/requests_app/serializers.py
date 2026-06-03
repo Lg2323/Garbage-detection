@@ -28,6 +28,30 @@ from .models import (
 User = get_user_model()
 
 
+def _resolve_structured_location_from_city(city: str) -> dict[str, object]:
+    normalized_city = (city or "").strip()
+    if not normalized_city:
+        return {}
+
+    localities = list(
+        Locality.objects.filter(is_active=True, name__iexact=normalized_city)
+        .select_related("municipality", "municipality__federal_subject")
+    )
+    if len(localities) != 1:
+        return {}
+
+    locality = localities[0]
+    municipality = locality.municipality
+    federal_subject = municipality.federal_subject if municipality else None
+
+    resolved = {"locality": locality}
+    if municipality is not None:
+        resolved["municipality"] = municipality
+    if federal_subject is not None:
+        resolved["federal_subject"] = federal_subject
+    return resolved
+
+
 class RequestReworkSerializer(serializers.ModelSerializer):
     created_by_username = serializers.CharField(source="created_by.username", read_only=True)
     previous_worker_username = serializers.CharField(source="previous_worker.username", read_only=True)
@@ -77,6 +101,7 @@ class RequestCreateSerializer(serializers.ModelSerializer):
         detected_city = detect_city_by_coordinates(lat, lon)
         validated_data["city"] = detected_city or provided_city
         validated_data["location"] = Point(lon, lat)
+        validated_data.update(_resolve_structured_location_from_city(validated_data["city"]))
         return super().create(validated_data)
 
 

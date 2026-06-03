@@ -51,11 +51,35 @@ function buildZoneSearchText(zone) {
 }
 
 function buildClassificationForm(request) {
+  return buildClassificationFormWithOptions(request, null);
+}
+
+function inferStructuredLocation(request, options) {
+  if (!options?.localities?.length) return {};
+
+  const normalizedCity = normalizeText(request?.city);
+  if (!normalizedCity) return {};
+
+  const matches = options.localities.filter((locality) => normalizeText(locality.name) === normalizedCity);
+  if (matches.length !== 1) return {};
+
+  const locality = matches[0];
+  const municipality = options.municipalities?.find((item) => item.id === locality.municipality_id) || null;
+
+  return {
+    locality: locality.id,
+    municipality: locality.municipality_id ?? null,
+    federal_subject: municipality?.federal_subject_id ?? null,
+  };
+}
+
+function buildClassificationFormWithOptions(request, options) {
+  const inferredLocation = inferStructuredLocation(request, options);
   return {
     address: request?.address || "",
-    federal_subject: request?.federal_subject ?? null,
-    municipality: request?.municipality ?? null,
-    locality: request?.locality ?? null,
+    federal_subject: request?.federal_subject ?? inferredLocation.federal_subject ?? null,
+    municipality: request?.municipality ?? inferredLocation.municipality ?? null,
+    locality: request?.locality ?? inferredLocation.locality ?? null,
     territory_type: request?.territory_type ?? null,
     ownership_type: request?.ownership_type ?? null,
     handling_mode: request?.handling_mode || "CLEANUP",
@@ -284,7 +308,7 @@ export default function CoordRequestDetail() {
     const [requestData, optionsData] = await Promise.all([getRequest(id), getRequestReferenceOptions()]);
     setRequestItem(requestData);
     setOptions(optionsData);
-    setClassificationForm(buildClassificationForm(requestData));
+    setClassificationForm(buildClassificationFormWithOptions(requestData, optionsData));
     setTransferForm((prev) => ({
       ...INITIAL_TRANSFER_FORM,
       target_organization: requestData?.responsible_organization ?? prev.target_organization,

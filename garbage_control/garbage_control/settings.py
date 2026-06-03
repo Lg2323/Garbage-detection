@@ -136,7 +136,7 @@ MEDIA_URL = '/media/'
 
 MEDIA_ROOT = BASE_DIR / 'media'
 
-# AI verification settings
+# AI верификация
 AI_MODEL_PATH = BASE_DIR / "ai_verification" / "models" / "best.pt"
 AI_CONF_THRESHOLD = float(os.getenv("AI_CONF_THRESHOLD", "0.25"))
 AI_DEVICE = os.getenv("AI_DEVICE", "cpu")

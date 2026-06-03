@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import { useEffect, useMemo, useState } from "react";
 import { adminStats } from "../../api/admin";
+import BootstrapIcon from "../../components/BootstrapIcon";
 import { statusLabel } from "../../ui/status";
 
 const ROLE_LABELS = {
@@ -98,7 +99,7 @@ export default function AdminDashboard() {
               Центр управления пользователями, заявками, зонами ответственности и аналитикой по нагрузке системы.
             </div>
           </div>
-          <i className="bi bi-shield-lock fs-2" />
+          <BootstrapIcon name="shield-lock" className="fs-2" />
         </div>
       </div>
 
@@ -298,7 +299,7 @@ export default function AdminDashboard() {
         <div className="col-md-6 col-xl-3">
           <Link to="/admin/users" className="card p-3 text-decoration-none">
             <div className="d-flex align-items-center gap-3">
-              <i className="bi bi-people fs-2" />
+              <BootstrapIcon name="people" className="fs-2" />
               <div>
                 <div className="fw-semibold">Пользователи</div>
                 <div className="text-muted">CRUD аккаунтов и ролей</div>
@@ -309,7 +310,7 @@ export default function AdminDashboard() {
         <div className="col-md-6 col-xl-3">
           <Link to="/admin/requests" className="card p-3 text-decoration-none">
             <div className="d-flex align-items-center gap-3">
-              <i className="bi bi-clipboard-check fs-2" />
+              <BootstrapIcon name="clipboard-check" className="fs-2" />
               <div>
                 <div className="fw-semibold">Заявки</div>
                 <div className="text-muted">Фильтры, статусы и переход к деталям</div>
@@ -320,7 +321,7 @@ export default function AdminDashboard() {
         <div className="col-md-6 col-xl-3">
           <Link to="/admin/directories" className="card p-3 text-decoration-none">
             <div className="d-flex align-items-center gap-3">
-              <i className="bi bi-diagram-3 fs-2" />
+              <BootstrapIcon name="diagram-3" className="fs-2" />
               <div>
                 <div className="fw-semibold">Справочники</div>
                 <div className="text-muted">Территории, организации, бригады</div>
@@ -331,7 +332,7 @@ export default function AdminDashboard() {
         <div className="col-md-6 col-xl-3">
           <Link to="/admin/zones" className="card p-3 text-decoration-none">
             <div className="d-flex align-items-center gap-3">
-              <i className="bi bi-geo-alt fs-2" />
+              <BootstrapIcon name="geo-alt" className="fs-2" />
               <div>
                 <div className="fw-semibold">Зоны</div>
                 <div className="text-muted">Геометрия зон и маршрутизация</div>

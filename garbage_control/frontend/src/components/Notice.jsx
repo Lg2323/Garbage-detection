@@ -1,3 +1,5 @@
+import BootstrapIcon from "./BootstrapIcon";
+
 export default function Notice({ type = "info", title, text, onClose }) {
   if (!text) return null;
   return (
@@ -8,7 +10,7 @@ export default function Notice({ type = "info", title, text, onClose }) {
       </div>
       {onClose && (
         <button className="gc-toast__close" onClick={onClose} aria-label="Закрыть">
-          <i className="bi bi-x-lg" />
+          <BootstrapIcon name="x-lg" />
         </button>
       )}
     </div>

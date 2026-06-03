@@ -10,7 +10,7 @@ from requests_app.models import Request, RequestAssignment, VerificationResult
 pytestmark = pytest.mark.django_db
 
 
-def test_create_request_runs_ai_precheck_and_creates_verification(citizen, make_client, image_file):
+def test_create_request_runs_ai_precheck_and_creates_verification(citizen, make_client, image_file, locality):
     client = make_client(citizen)
 
     with patch("requests_app.serializers.detect_city_by_coordinates", return_value="Almetyevsk"), patch(
@@ -34,6 +34,10 @@ def test_create_request_runs_ai_precheck_and_creates_verification(citizen, make_
     created_request = Request.objects.get(title="Overflowed waste site")
     verification = VerificationResult.objects.get(request=created_request)
     assert created_request.status == Request.Status.VERIFIED
+    assert created_request.city == locality.name
+    assert created_request.locality_id == locality.id
+    assert created_request.municipality_id == locality.municipality_id
+    assert created_request.federal_subject_id == locality.municipality.federal_subject_id
     assert verification.is_clean is False
     assert verification.score == 0.91
     mock_detect_before.assert_called_once()

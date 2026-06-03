@@ -7,6 +7,7 @@ import {
   updateUser,
 } from "../../api/admin";
 import Notice from "../../components/Notice";
+import BootstrapIcon from "../../components/BootstrapIcon";
 import Pagination from "../../components/Pagination";
 
 const ROLES = ["CITIZEN", "COORDINATOR", "ORG_MANAGER", "DEPARTMENT_MANAGER", "WORKER", "ADMIN"];
@@ -300,7 +301,7 @@ export default function AdminUsers() {
         </div>
 
         <div className="gc-admin-inline-hint mb-3" data-hint="Поля ниже редактируются прямо в строке таблицы.">
-          <i className="bi bi-pencil-square" aria-hidden="true" />
+          <BootstrapIcon name="pencil-square" />
           Поля ниже редактируются прямо в строке таблицы.
 
         </div>

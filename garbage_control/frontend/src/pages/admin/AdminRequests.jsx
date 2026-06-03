@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import Notice from "../../components/Notice";
+import BootstrapIcon from "../../components/BootstrapIcon";
 import Pagination from "../../components/Pagination";
 import RequestFiltersPanel from "../../components/requests/RequestFiltersPanel";
 import { assignWorker, listRequests, listWorkers, setRequestStatus } from "../../api/admin";
@@ -140,7 +141,7 @@ export default function AdminRequests() {
       </div>
 
       <div className="gc-admin-inline-hint mb-3" data-hint="Статус и исполнитель меняются прямо в таблице ниже.">
-        <i className="bi bi-sliders" aria-hidden="true" />
+        <BootstrapIcon name="sliders" />
         Статус и исполнитель меняются прямо в таблице ниже.
       </div>
 
